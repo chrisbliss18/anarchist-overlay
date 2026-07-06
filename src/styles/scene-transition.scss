@@ -32,13 +32,23 @@
 .anarchist-scene-transition__door--left {
   left: 0;
   border-right: 2px solid rgba(255, 210, 96, 0.65);
-  transform: translateX(-100%);
 }
 
 .anarchist-scene-transition__door--right {
   right: 0;
   border-left: 2px solid rgba(255, 210, 96, 0.65);
+}
+
+.anarchist-scene-transition.doors-open .anarchist-scene-transition__door--left {
+  transform: translateX(-100%);
+}
+
+.anarchist-scene-transition.doors-open .anarchist-scene-transition__door--right {
   transform: translateX(100%);
+}
+
+.anarchist-scene-transition.doors-closing .anarchist-scene-transition__door {
+  transition-duration: var(--door-close-duration);
 }
 
 .anarchist-scene-transition.doors-closed .anarchist-scene-transition__door {

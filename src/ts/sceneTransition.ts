@@ -63,11 +63,14 @@ const handleSceneTransition = async (config: SceneTransitionConfig, controllingU
   document.body.append(overlay);
 
   try {
-    await nextFrame();
+    await prepareOverlayForAnimation(overlay);
     void playSound(normalizedConfig.sounds.close, normalizedConfig.sounds.doorVolume);
+    overlay.classList.add('doors-closing');
     overlay.classList.add('doors-closed');
+    overlay.classList.remove('doors-open');
 
     await sleeper(normalizedConfig.timing.closeMs);
+    overlay.classList.remove('doors-closing');
 
     if (normalizedConfig.text) {
       const textHtml = await createTextCrawlHtml(normalizedConfig.text);
@@ -96,6 +99,7 @@ const handleSceneTransition = async (config: SceneTransitionConfig, controllingU
 
     void playSound(normalizedConfig.sounds.open, normalizedConfig.sounds.doorVolume);
     overlay.classList.add('doors-opening');
+    overlay.classList.add('doors-open');
     overlay.classList.remove('doors-closed');
 
     await sleeper(normalizedConfig.timing.openMs);
@@ -147,6 +151,7 @@ const createTransitionOverlay = (config: NormalizedSceneTransitionConfig) => {
   overlay.className = [
     'anarchist-overlay',
     'anarchist-scene-transition',
+    'doors-open',
     config.aboveUi ? 'above-ui' : '',
     config.blockInteractions ? 'block-interactions' : ''
   ].filter(Boolean).join(' ');
@@ -245,6 +250,12 @@ const stopSound = async (sound?: TransitionSound) => {
 };
 
 const sleeper = (time: number) => new Promise(resolve => window.setTimeout(resolve, time));
+
+const prepareOverlayForAnimation = async (overlay: HTMLElement) => {
+  await nextFrame();
+  void overlay.offsetWidth;
+  await nextFrame();
+};
 
 const nextFrame = () => new Promise(resolve => window.requestAnimationFrame(resolve));
 
