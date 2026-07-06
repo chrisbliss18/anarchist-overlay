@@ -1,4 +1,5 @@
 import type { closeAllOverlays, closeOverlay, createOverlay } from './overlay';
+import type { playSceneTransition } from './sceneTransition';
 import type { createTextCrawlHtml } from "./textCrawl";
 
 export type AnarchistOverlayApi = {
@@ -6,6 +7,7 @@ export type AnarchistOverlayApi = {
   createTextCrawlHtml: typeof createTextCrawlHtml;
   closeAllOverlays: ReturnType<typeof closeAllOverlays>;
   closeOverlay: ReturnType<typeof closeOverlay>;
+  playSceneTransition: ReturnType<typeof playSceneTransition>;
 };
 
 export interface AnarchistOverlayModule {
@@ -14,6 +16,7 @@ export interface AnarchistOverlayModule {
   createTextCrawlHtml: AnarchistOverlayApi['createTextCrawlHtml'];
   closeAllOverlays: AnarchistOverlayApi['closeAllOverlays'];
   closeOverlay: AnarchistOverlayApi['closeOverlay'];
+  playSceneTransition: AnarchistOverlayApi['playSceneTransition'];
 }
 
 

@@ -171,6 +171,49 @@ await anarchistOverlay.closeAllOverlays();
 
 Renders HTML for a text crawl that can be passed into `createOverlay`.
 
+### `playSceneTransition(config)`
+
+Plays a prototype scene transition on every connected client. This must be called by a GM. The transition closes animated industrial doors over the current scene, renders optional text crawl content, activates the target scene while the doors are closed, then opens the doors and fades the text.
+
+```js
+const anarchistOverlay = game.modules.get('anarchist-overlay').api;
+
+await anarchistOverlay.playSceneTransition({
+  sceneId: 'TARGET_SCENE_ID',
+  text: {
+    offsetX: '20px',
+    offsetY: '0',
+    typingTime: 2,
+    delay: 1,
+    blackBars: false,
+    lines: [
+      {
+        text: 'MISSION 1: BUG HUNT',
+        fontSize: '52px'
+      },
+      {
+        text: 'COMBAT: TRAPDOOR SPIDER',
+        fontSize: '38px'
+      },
+      {
+        text: 'OBJECTIVE: SEARCH AND DESTROY',
+        fontSize: '34px'
+      }
+    ]
+  },
+  timing: {
+    closeMs: 2200,
+    openMs: 2400,
+    textFadeMs: 900
+  },
+  sounds: {
+    close: '',
+    open: '',
+    typing: ''
+  }
+});
+```
+
 ## Config
 ```js
 //Overlay config
@@ -194,6 +237,29 @@ export type TextCrawlConfig = {
   blackBars?: boolean, // should black bars on top and bottom be rendered
   lines: { text: string, fontSize?: string }[], // list of lines to be rendered
   glitchEffect?: { time: number } | false; // adds a glitch effect. Should contain object with information how long should animation loop take
+};
+
+// Scene transition config
+export type SceneTransitionConfig = {
+  sceneId: string; // target scene id
+  id?: string; // optional transition id, defaults to 'scene-transition'
+  text?: TextCrawlConfig; // optional text crawl config rendered while doors are closed
+  timing?: {
+    closeMs?: number; // door close animation duration
+    textMs?: number; // how long text remains before doors open. Defaults from text line timing.
+    openMs?: number; // door open animation duration
+    textFadeMs?: number; // text fade duration after doors open
+    sceneReadyTimeoutMs?: number; // max wait for the target scene canvas to be ready
+  };
+  sounds?: {
+    close?: string; // optional local sound path for door close
+    open?: string; // optional local sound path for door open
+    typing?: string; // optional local looping sound path while text renders
+    doorVolume?: number;
+    typingVolume?: number;
+  };
+  aboveUi?: boolean; // defaults to true
+  blockInteractions?: boolean; // defaults to true
 };
 ```
 

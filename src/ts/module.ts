@@ -2,10 +2,12 @@
 // code and not include them in the build output.
 import '../styles/overlay.scss';
 import '../styles/text-crawl.scss';
+import '../styles/scene-transition.scss';
 
 import type { AnarchistOverlayApi, AnarchistOverlayModule } from './types';
 import { setupSocket } from './socket';
 import { closeAllOverlays, closeOverlay, createOverlay, setupOverlaySocket } from './overlay';
+import { playSceneTransition, setupSceneTransitionSocket } from './sceneTransition';
 import { moduleId } from "./constants";
 import {createTextCrawlHtml} from "./textCrawl";
 
@@ -17,12 +19,14 @@ Hooks.once('socketlib.ready', () => {
 
   const socket = setupSocket();
   setupOverlaySocket(socket);
+  setupSceneTransitionSocket(socket);
 
   const api: AnarchistOverlayApi = {
     createOverlay: createOverlay(socket),
     createTextCrawlHtml,
     closeAllOverlays: closeAllOverlays(socket),
-    closeOverlay: closeOverlay(socket)
+    closeOverlay: closeOverlay(socket),
+    playSceneTransition: playSceneTransition(socket)
   };
 
   module.api = api;
@@ -30,4 +34,5 @@ Hooks.once('socketlib.ready', () => {
   module.createTextCrawlHtml = api.createTextCrawlHtml;
   module.closeAllOverlays = api.closeAllOverlays;
   module.closeOverlay = api.closeOverlay;
+  module.playSceneTransition = api.playSceneTransition;
 });
