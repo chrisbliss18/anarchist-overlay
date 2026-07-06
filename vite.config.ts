@@ -20,6 +20,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    cleanCopiedAssetsPlugin(),
     updateModuleManifestPlugin(),
     scss({
       output: 'dist/style.css',
@@ -36,6 +37,18 @@ export default defineConfig({
     }),
   ],
 });
+
+function cleanCopiedAssetsPlugin(): Plugin {
+  return {
+    name: 'clean-copied-assets',
+    async buildStart(): Promise<void> {
+      await Promise.all([
+        fsPromises.rm('dist/sounds', { recursive: true, force: true }),
+        fsPromises.rm('dist/templates', { recursive: true, force: true }),
+      ]);
+    },
+  };
+}
 
 function updateModuleManifestPlugin(): Plugin {
   return {

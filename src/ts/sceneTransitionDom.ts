@@ -1,0 +1,103 @@
+import type {
+  NormalizedSceneTransitionConfig,
+  TransitionController
+} from './sceneTransitionTypes';
+
+const transitionFallbackMs = 250;
+
+export const createTransitionOverlay = (config: NormalizedSceneTransitionConfig) => {
+  const overlay = document.createElement('div');
+  overlay.className = [
+    'anarchist-overlay',
+    'anarchist-scene-transition',
+    'doors-open',
+    config.aboveUi ? 'above-ui' : '',
+    config.blockInteractions ? 'block-interactions' : ''
+  ].filter(Boolean).join(' ');
+  overlay.dataset.anarchistOverlay = 'true';
+  overlay.dataset.anarchistOverlayId = config.id;
+  overlay.style.setProperty('--door-close-duration', `${config.timing.doorCloseMs}ms`);
+  overlay.style.setProperty('--door-open-duration', `${config.timing.doorOpenMs}ms`);
+  overlay.style.setProperty('--text-fade-duration', `${config.timing.textFadeMs}ms`);
+  overlay.innerHTML = `
+    <div class="anarchist-scene-transition__door anarchist-scene-transition__door--left">
+      <div class="anarchist-scene-transition__door-rib"></div>
+      <div class="anarchist-scene-transition__door-rib"></div>
+      <div class="anarchist-scene-transition__door-rib"></div>
+      <div class="anarchist-scene-transition__hazard"></div>
+    </div>
+    <div class="anarchist-scene-transition__door anarchist-scene-transition__door--right">
+      <div class="anarchist-scene-transition__door-rib"></div>
+      <div class="anarchist-scene-transition__door-rib"></div>
+      <div class="anarchist-scene-transition__door-rib"></div>
+      <div class="anarchist-scene-transition__hazard"></div>
+    </div>
+    <div class="anarchist-scene-transition__seam" aria-hidden="true"></div>
+    <div class="anarchist-scene-transition__text"></div>
+  `;
+
+  return overlay;
+};
+
+export const removeExistingTransition = (id: string) => {
+  Array.from(document.querySelectorAll<HTMLElement>('.anarchist-scene-transition'))
+    .filter(overlay => overlay.dataset.anarchistOverlayId === id)
+    .forEach(overlay => overlay.remove());
+};
+
+export const getDoorElement = (overlay: HTMLElement) => {
+  return overlay.querySelector<HTMLElement>('.anarchist-scene-transition__door--left');
+};
+
+export const getTextElement = (overlay: HTMLElement) => {
+  return overlay.querySelector<HTMLElement>('.anarchist-scene-transition__text');
+};
+
+export const prepareOverlayForAnimation = async (overlay: HTMLElement) => {
+  await nextFrame();
+  void overlay.offsetWidth;
+  await nextFrame();
+};
+
+export const waitForTransition = async (
+  element: HTMLElement | null,
+  propertyName: string,
+  durationMs: number,
+  controller: TransitionController
+) => {
+  if (!element) {
+    return waitForDelay(durationMs, controller);
+  }
+
+  await Promise.race([
+    new Promise<void>(resolve => {
+      let timeoutId: number | undefined;
+      const done = () => {
+        if (timeoutId) {
+          window.clearTimeout(timeoutId);
+        }
+        element.removeEventListener('transitionend', handleTransitionEnd);
+        resolve();
+      };
+      const handleTransitionEnd = (event: TransitionEvent) => {
+        if (event.target === element && event.propertyName === propertyName) {
+          done();
+        }
+      };
+      timeoutId = window.setTimeout(done, durationMs + transitionFallbackMs);
+      element.addEventListener('transitionend', handleTransitionEnd);
+    }),
+    controller.cancelPromise
+  ]);
+
+  return controller.canceled;
+};
+
+export const waitForDelay = async (durationMs: number, controller: TransitionController) => {
+  await Promise.race([sleeper(durationMs), controller.cancelPromise]);
+  return controller.canceled;
+};
+
+const sleeper = (time: number) => new Promise(resolve => window.setTimeout(resolve, time));
+
+const nextFrame = () => new Promise(resolve => window.requestAnimationFrame(resolve));
