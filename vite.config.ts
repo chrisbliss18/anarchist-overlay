@@ -29,6 +29,7 @@ export default defineConfig({
     copy({
       targets: [
         { src: 'src/languages', dest: 'dist' },
+        { src: 'src/sounds', dest: 'dist' },
         { src: 'src/templates', dest: 'dist' },
       ],
       hook: 'writeBundle',

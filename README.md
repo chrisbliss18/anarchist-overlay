@@ -207,9 +207,9 @@ await anarchistOverlay.playSceneTransition({
     textFadeMs: 900
   },
   sounds: {
-    close: '',
-    open: '',
-    typing: ''
+    close: 'modules/anarchist-overlay/sounds/industrial-door-close.ogg',
+    open: 'modules/anarchist-overlay/sounds/industrial-door-open.ogg',
+    typing: 'modules/anarchist-overlay/sounds/mechanical-typing-loop.ogg'
   }
 });
 ```
