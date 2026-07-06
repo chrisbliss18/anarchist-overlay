@@ -38,6 +38,13 @@ type TransitionSound = {
   stop: () => Promise<unknown> | unknown;
 };
 
+type AudioHelperGlobal = {
+  play: (
+    data: { src: string; volume: number; loop: boolean },
+    socketOptions?: boolean | null
+  ) => Promise<TransitionSound>;
+};
+
 export const playSceneTransition = (socket: ModuleSocket) => (config: SceneTransitionConfig) => {
   assertGM('play scene transitions');
   if (!config.sceneId) {
@@ -229,10 +236,16 @@ const playSound = async (src: string, volume: number, loop = false) => {
   }
 
   try {
-    const sound = (game as ReadyGame).audio.create({ src });
-    sound.volume = volume;
-    await sound.play({ loop });
-    return sound;
+    const audioHelper = (globalThis as typeof globalThis & { AudioHelper?: AudioHelperGlobal }).AudioHelper;
+    if (audioHelper) {
+      return await audioHelper.play({ src, volume, loop }, false);
+    }
+
+    const fallbackSound = (game as ReadyGame).audio.create({ src });
+    fallbackSound.volume = volume;
+    await fallbackSound.load();
+    await fallbackSound.play({ loop });
+    return fallbackSound;
   } catch (error) {
     console.warn(`Anarchist Overlay | Unable to play sound "${src}".`, error);
     return undefined;
