@@ -8,11 +8,28 @@ export type SceneTransitionAnimationConfig = {
   theme?: PresentationThemeConfig;
 };
 
+export type SceneTransitionSoundProfileType =
+  | 'bulkhead'
+  | 'classic-industrial'
+  | 'heavy-industrial'
+  | 'harsh-industrial'
+  | 'terminal'
+  | 'scanline'
+  | 'alert'
+  | 'hologram'
+  | 'classified'
+  | 'silent';
+
+export type SceneTransitionSoundProfileConfig = {
+  type?: SceneTransitionSoundProfileType;
+};
+
 export type SceneTransitionConfig = {
   sceneName: string;
   id?: string;
   theme?: PresentationThemeConfig;
   transition?: SceneTransitionAnimationConfig;
+  soundProfile?: SceneTransitionSoundProfileConfig;
   text?: TextCrawlConfig;
   timing?: SceneTransitionTiming;
   sounds?: SceneTransitionSounds;
@@ -47,13 +64,14 @@ export type SceneTransitionSounds = {
 };
 
 export type NormalizedSceneTransitionConfig = Required<
-  Omit<SceneTransitionSocketConfig, 'text' | 'theme' | 'transition' | 'timing' | 'sounds'>
+  Omit<SceneTransitionSocketConfig, 'text' | 'theme' | 'transition' | 'soundProfile' | 'timing' | 'sounds'>
 > & {
   theme: Required<PresentationThemeConfig>;
   transition: {
     type: SceneTransitionType;
     theme: Required<PresentationThemeConfig>;
   };
+  soundProfile: Required<SceneTransitionSoundProfileConfig>;
   text?: TextCrawlConfig;
   timing: Required<SceneTransitionTiming>;
   sounds: Required<SceneTransitionSounds>;

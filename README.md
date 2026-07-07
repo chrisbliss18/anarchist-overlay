@@ -383,9 +383,9 @@ await anarchistOverlay.playSceneTransition({
     ]
   },
   timing: {
-    doorCloseMs: 2200,
-    doorUnlockMs: 700,
-    doorOpenMs: 2400,
+    doorCloseMs: 2600,
+    doorUnlockMs: 1500,
+    doorOpenMs: 4100,
     textFadeMs: 900
   }
 });
@@ -470,15 +470,15 @@ await anarchistOverlay.playSceneTransition({
 });
 ```
 
-The industrial door animation is used by default. Pass `theme`, `transition`, `timing`, or `sounds` only when you want to override the defaults. A top-level `theme` is inherited by transition text unless `text.theme` overrides it; `transition.theme` can separately theme the transition shell.
+The industrial door animation is used by default. Pass `theme`, `transition`, `soundProfile`, `timing`, or `sounds` only when you want to override the defaults. A top-level `theme` is inherited by transition text unless `text.theme` overrides it; `transition.theme` can separately theme the transition shell.
 
-Scene transitions use theme-aware bundled sound defaults. Door sounds come from `transition.theme`; typing clicks come from `text.theme`. The `clean` theme is silent. Pass `sounds` to override any individual sound or volume.
+Scene transitions use bundled sound profiles that are independent of visual themes. The default sound profile is `bulkhead`. Use `soundProfile: { type: 'silent' }` for a silent transition, or pass `sounds` to override any individual sound path or volume.
 
 The `sceneName` value must match exactly one scene. If no scene matches, or if multiple scenes share the same name, the GM receives an error notification and the transition is not started.
 
-### Experimental Industrial Sounds
+### Sound Profiles
 
-The default industrial door sounds are unchanged. Alternate industrial sound banks are bundled for testing and can be selected with `sounds`.
+Bundled sound profiles can be selected independently from the visual theme. Sound profiles do not change animation timing; the default timings are tuned for `bulkhead`.
 
 CC0 bulkhead:
 
@@ -490,6 +490,9 @@ await ao.playSceneTransition({
   transition: {
     type: 'industrial-doors',
     theme: { type: 'industrial' }
+  },
+  soundProfile: {
+    type: 'bulkhead'
   },
   text: {
     alignX: 'center',
@@ -508,13 +511,6 @@ await ao.playSceneTransition({
     doorUnlockMs: 1500,
     doorOpenMs: 4100,
     textFadeMs: 900
-  },
-  sounds: {
-    doorClose: 'modules/anarchist-overlay/sounds/industrial-bulkhead-close.ogg',
-    doorSeal: 'modules/anarchist-overlay/sounds/industrial-bulkhead-seal.ogg',
-    doorUnlock: 'modules/anarchist-overlay/sounds/industrial-bulkhead-unlock.ogg',
-    doorOpen: 'modules/anarchist-overlay/sounds/industrial-bulkhead-open.ogg',
-    doorVolume: 0.82
   }
 });
 ```
@@ -537,6 +533,9 @@ await ao.playSceneTransition({
     type: 'industrial-doors',
     theme: { type: 'industrial' }
   },
+  soundProfile: {
+    type: 'heavy-industrial'
+  },
   text: {
     alignX: 'center',
     textAlign: 'center',
@@ -548,12 +547,11 @@ await ao.playSceneTransition({
       { text: 'MECHANICAL OVERRIDE ENGAGED', fontSize: '26px' }
     ]
   },
-  sounds: {
-    doorClose: 'modules/anarchist-overlay/sounds/industrial-heavy-close.ogg',
-    doorSeal: 'modules/anarchist-overlay/sounds/industrial-heavy-seal.ogg',
-    doorUnlock: 'modules/anarchist-overlay/sounds/industrial-heavy-unlock.ogg',
-    doorOpen: 'modules/anarchist-overlay/sounds/industrial-heavy-open.ogg',
-    doorVolume: 0.82
+  timing: {
+    doorCloseMs: 2200,
+    doorUnlockMs: 700,
+    doorOpenMs: 2400,
+    textFadeMs: 900
   }
 });
 ```
@@ -569,6 +567,9 @@ await ao.playSceneTransition({
     type: 'industrial-doors',
     theme: { type: 'industrial' }
   },
+  soundProfile: {
+    type: 'harsh-industrial'
+  },
   text: {
     alignX: 'center',
     textAlign: 'center',
@@ -581,15 +582,16 @@ await ao.playSceneTransition({
       { text: 'BULKHEAD CYCLING', fontSize: '24px' }
     ]
   },
-  sounds: {
-    doorClose: 'modules/anarchist-overlay/sounds/industrial-harsh-close.ogg',
-    doorSeal: 'modules/anarchist-overlay/sounds/industrial-harsh-seal.ogg',
-    doorUnlock: 'modules/anarchist-overlay/sounds/industrial-harsh-unlock.ogg',
-    doorOpen: 'modules/anarchist-overlay/sounds/industrial-harsh-open.ogg',
-    doorVolume: 0.72
+  timing: {
+    doorCloseMs: 2200,
+    doorUnlockMs: 700,
+    doorOpenMs: 2400,
+    textFadeMs: 900
   }
 });
 ```
+
+Other bundled profiles are `classic-industrial`, `terminal`, `scanline`, `alert`, `hologram`, `classified`, and `silent`.
 
 ### Macro Helper Patterns
 
@@ -658,6 +660,9 @@ async function playMissionTransition(sceneName, entries, options = {}) {
         type: options.transitionTheme ?? options.theme ?? 'industrial'
       }
     },
+    soundProfile: {
+      type: options.soundProfile ?? 'bulkhead'
+    },
     text: briefingText({
       frame: options.frame ?? 'mission-card',
       theme: options.textTheme ?? options.theme ?? 'industrial',
@@ -665,9 +670,9 @@ async function playMissionTransition(sceneName, entries, options = {}) {
       lines: missionLines(entries)
     }),
     timing: {
-      doorCloseMs: 2200,
-      doorUnlockMs: 700,
-      doorOpenMs: 2400,
+      doorCloseMs: 2600,
+      doorUnlockMs: 1500,
+      doorOpenMs: 4100,
       textFadeMs: 900
     }
   });
@@ -681,6 +686,7 @@ await playMissionTransition('Sandbox', [
 ], {
   transitionTheme: 'classified',
   textTheme: 'hologram',
+  soundProfile: 'bulkhead',
   effect: 'decode'
 });
 ```
@@ -752,6 +758,17 @@ export type TextCrawlConfig = {
 
 // Scene transition config
 export type SceneTransitionType = 'industrial-doors' | 'horizontal-shutter' | 'fade';
+export type SceneTransitionSoundProfileType =
+  | 'bulkhead'
+  | 'classic-industrial'
+  | 'heavy-industrial'
+  | 'harsh-industrial'
+  | 'terminal'
+  | 'scanline'
+  | 'alert'
+  | 'hologram'
+  | 'classified'
+  | 'silent';
 
 export type SceneTransitionConfig = {
   sceneName: string; // target scene name. Must match exactly and be unique.
@@ -765,25 +782,28 @@ export type SceneTransitionConfig = {
       type?: PresentationThemeType; // defaults from the top-level theme, then 'industrial'
     };
   };
+  soundProfile?: {
+    type?: SceneTransitionSoundProfileType; // defaults to 'bulkhead'
+  };
   text?: TextCrawlConfig; // optional text crawl config rendered while doors are closed
   timing?: {
-    doorCloseMs?: number; // door close animation duration. Default: 2200
+    doorCloseMs?: number; // door close animation duration. Default: 2600
     briefingMs?: number; // how long text remains before doors open. Defaults from the text effect duration.
-    doorUnlockMs?: number; // delay after the unlock sound before doors open. Default: 700
-    doorOpenMs?: number; // door open animation duration. Default: 2400
+    doorUnlockMs?: number; // delay after the unlock sound before doors open. Default: 1500
+    doorOpenMs?: number; // door open animation duration. Default: 4100
     fadeOutMs?: number; // fade-to-black animation duration. Default: 1200
     fadeInMs?: number; // fade-from-black animation duration. Default: 1200
     textFadeMs?: number; // text fade duration before the transition reveal completes. Default: 900
     sceneReadyTimeoutMs?: number; // max wait for the target scene canvas to be ready. Default: 10000
   };
   sounds?: {
-    doorClose?: string; // local sound path for door close. Defaults from transition.theme.
-    doorSeal?: string; // local sound path for doors sealing shut. Defaults from transition.theme.
-    doorUnlock?: string; // local sound path before doors open. Defaults from transition.theme.
-    doorOpen?: string; // local sound path for door open. Defaults from transition.theme.
-    typingClick?: string; // local click sound path scheduled with typed characters for typewriter text. Defaults from text.theme.
-    doorVolume?: number; // defaults from transition.theme
-    typingVolume?: number; // defaults from text.theme
+    doorClose?: string; // local sound path for door close. Defaults from soundProfile.
+    doorSeal?: string; // local sound path for doors sealing shut. Defaults from soundProfile.
+    doorUnlock?: string; // local sound path before doors open. Defaults from soundProfile.
+    doorOpen?: string; // local sound path for door open. Defaults from soundProfile.
+    typingClick?: string; // local click sound path scheduled with typed characters for typewriter text. Defaults from soundProfile.
+    doorVolume?: number; // defaults from soundProfile
+    typingVolume?: number; // defaults from soundProfile
   };
   aboveUi?: boolean; // defaults to true
   blockInteractions?: boolean; // defaults to true

@@ -2,6 +2,7 @@ import type { ModuleSocket } from './types';
 import type {
   NormalizedSceneTransitionConfig,
   SceneTransitionConfig,
+  SceneTransitionSoundProfileType,
   SceneTransitionSocketConfig,
   SceneTransitionSounds,
   SceneTransitionTiming,
@@ -13,12 +14,14 @@ import type {
 import {
   createTextCrawlHtml,
   getTextCrawlDisplayDurationMs,
-  getTextCrawlThemeType,
   validateTextCrawlConfig
 } from './textCrawl';
-import { moduleId } from './constants';
 import { resolvePresentationThemeType, type PresentationThemeType } from './theme';
 import { createTransitionAudioController } from './sceneTransitionAudio';
+import {
+  resolveSceneTransitionSoundProfileType,
+  sceneTransitionSoundProfileDefaults
+} from './sceneTransitionSoundProfiles';
 import {
   createTransitionOverlay,
   getDoorElement,
@@ -33,6 +36,7 @@ import {
 
 export type {
   SceneTransitionConfig,
+  SceneTransitionSoundProfileType,
   SceneTransitionSounds,
   SceneTransitionTiming,
   SceneTransitionType
@@ -46,82 +50,14 @@ type SceneNameLookupDocument = {
 };
 
 const defaultTiming: Required<SceneTransitionTiming> = {
-  doorCloseMs: 2200,
+  doorCloseMs: 2600,
   briefingMs: 0,
-  doorUnlockMs: 700,
-  doorOpenMs: 2400,
+  doorUnlockMs: 1500,
+  doorOpenMs: 4100,
   fadeOutMs: 1200,
   fadeInMs: 1200,
   textFadeMs: 900,
   sceneReadyTimeoutMs: 10000
-};
-
-const defaultSounds: Required<SceneTransitionSounds> = {
-  doorClose: `modules/${moduleId}/sounds/industrial-door-close.ogg`,
-  doorSeal: `modules/${moduleId}/sounds/industrial-door-seal.ogg`,
-  doorUnlock: `modules/${moduleId}/sounds/industrial-door-unlock.ogg`,
-  doorOpen: `modules/${moduleId}/sounds/industrial-door-open.ogg`,
-  typingClick: `modules/${moduleId}/sounds/mechanical-typing-click.ogg`,
-  doorVolume: 0.8,
-  typingVolume: 0.35
-};
-
-const themeSoundDefaults: Record<PresentationThemeType, Required<SceneTransitionSounds>> = {
-  industrial: defaultSounds,
-  terminal: {
-    doorClose: `modules/${moduleId}/sounds/terminal-transition-close.ogg`,
-    doorSeal: `modules/${moduleId}/sounds/terminal-transition-seal.ogg`,
-    doorUnlock: `modules/${moduleId}/sounds/terminal-transition-unlock.ogg`,
-    doorOpen: `modules/${moduleId}/sounds/terminal-transition-open.ogg`,
-    typingClick: `modules/${moduleId}/sounds/terminal-typing-click.ogg`,
-    doorVolume: 0.52,
-    typingVolume: 0.28
-  },
-  scanline: {
-    doorClose: `modules/${moduleId}/sounds/scanline-transition-close.ogg`,
-    doorSeal: `modules/${moduleId}/sounds/scanline-transition-seal.ogg`,
-    doorUnlock: `modules/${moduleId}/sounds/scanline-transition-unlock.ogg`,
-    doorOpen: `modules/${moduleId}/sounds/scanline-transition-open.ogg`,
-    typingClick: `modules/${moduleId}/sounds/scanline-typing-click.ogg`,
-    doorVolume: 0.48,
-    typingVolume: 0.24
-  },
-  alert: {
-    doorClose: `modules/${moduleId}/sounds/alert-transition-close.ogg`,
-    doorSeal: `modules/${moduleId}/sounds/alert-transition-seal.ogg`,
-    doorUnlock: `modules/${moduleId}/sounds/alert-transition-unlock.ogg`,
-    doorOpen: `modules/${moduleId}/sounds/alert-transition-open.ogg`,
-    typingClick: `modules/${moduleId}/sounds/alert-typing-click.ogg`,
-    doorVolume: 0.64,
-    typingVolume: 0.3
-  },
-  hologram: {
-    doorClose: `modules/${moduleId}/sounds/hologram-transition-close.ogg`,
-    doorSeal: `modules/${moduleId}/sounds/hologram-transition-seal.ogg`,
-    doorUnlock: `modules/${moduleId}/sounds/hologram-transition-unlock.ogg`,
-    doorOpen: `modules/${moduleId}/sounds/hologram-transition-open.ogg`,
-    typingClick: `modules/${moduleId}/sounds/hologram-typing-click.ogg`,
-    doorVolume: 0.46,
-    typingVolume: 0.22
-  },
-  classified: {
-    doorClose: `modules/${moduleId}/sounds/classified-transition-close.ogg`,
-    doorSeal: `modules/${moduleId}/sounds/classified-transition-seal.ogg`,
-    doorUnlock: `modules/${moduleId}/sounds/classified-transition-unlock.ogg`,
-    doorOpen: `modules/${moduleId}/sounds/classified-transition-open.ogg`,
-    typingClick: `modules/${moduleId}/sounds/classified-typing-click.ogg`,
-    doorVolume: 0.44,
-    typingVolume: 0.2
-  },
-  clean: {
-    doorClose: '',
-    doorSeal: '',
-    doorUnlock: '',
-    doorOpen: '',
-    typingClick: '',
-    doorVolume: 0,
-    typingVolume: 0
-  }
 };
 
 export const playSceneTransition = (socket: ModuleSocket) => async (config: SceneTransitionConfig) => {
@@ -518,16 +454,16 @@ const normalizeConfig = (config: SceneTransitionSocketConfig): NormalizedSceneTr
   const transitionType = resolveSceneTransitionType(config.transition?.type);
   const themeType = resolvePresentationThemeType(config.theme?.type);
   const transitionThemeType = resolvePresentationThemeType(config.transition?.theme?.type, themeType);
+  const soundProfileType = resolveSceneTransitionSoundProfileType(config.soundProfile?.type);
   const text = config.text
     ? applyInheritedTextTheme(config.text, config.theme?.type ? themeType : undefined)
     : undefined;
-  const textThemeType = text ? getTextCrawlThemeType(text) : themeType;
   const timing = {
     ...defaultTiming,
     ...config.timing,
     briefingMs: config.timing?.briefingMs ?? getTextCrawlDisplayDurationMs(text)
   };
-  const sounds = resolveSceneTransitionSounds(config.sounds, transitionThemeType, textThemeType);
+  const sounds = resolveSceneTransitionSounds(config.sounds, soundProfileType);
 
   return {
     sceneId: config.sceneId,
@@ -542,6 +478,9 @@ const normalizeConfig = (config: SceneTransitionSocketConfig): NormalizedSceneTr
         type: transitionThemeType
       }
     },
+    soundProfile: {
+      type: soundProfileType
+    },
     text,
     timing,
     sounds,
@@ -554,6 +493,7 @@ const validateSceneTransitionConfig = (config: SceneTransitionConfig) => {
   resolveSceneTransitionType(config.transition?.type);
   const themeType = resolvePresentationThemeType(config.theme?.type);
   resolvePresentationThemeType(config.transition?.theme?.type, themeType);
+  resolveSceneTransitionSoundProfileType(config.soundProfile?.type);
   validateSceneTransitionTiming(config.timing);
   validateSceneTransitionSounds(config.sounds);
 
@@ -616,16 +556,10 @@ const validateSceneTransitionSounds = (sounds?: SceneTransitionSounds) => {
 
 const resolveSceneTransitionSounds = (
   sounds: SceneTransitionSounds | undefined,
-  transitionThemeType: PresentationThemeType,
-  textThemeType: PresentationThemeType
+  soundProfileType: SceneTransitionSoundProfileType
 ) => {
-  const transitionSoundDefaults = themeSoundDefaults[transitionThemeType];
-  const textSoundDefaults = themeSoundDefaults[textThemeType];
-
   return {
-    ...transitionSoundDefaults,
-    typingClick: textSoundDefaults.typingClick,
-    typingVolume: textSoundDefaults.typingVolume,
+    ...sceneTransitionSoundProfileDefaults[soundProfileType],
     ...sounds
   };
 };
