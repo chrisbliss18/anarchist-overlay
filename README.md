@@ -61,7 +61,9 @@ const textHtml = await anarchistOverlay.createTextCrawlHtml(textConfig);
 await anarchistOverlay.createOverlay(overlayConfig, textHtml);
 ```
 
-Text crawl frames can be set to `cinematic-bars`, `horizontal-bar`, `lower-third`, `terminal-panel`, `alert-banner`, or `none`.
+Text crawl frames can be set to `cinematic-bars`, `horizontal-bar`, `lower-third`, `terminal-panel`, `alert-banner`, `chyron`, or `none`.
+
+Text crawl effects can be set to `typewriter`, `scroll`, or `none`. Frames default to `typewriter`, except `chyron`, which defaults to `scroll`. The `scroll` effect is supported by `chyron`, `horizontal-bar`, and `alert-banner`.
 
 ### Horizontal Bar
 
@@ -100,12 +102,53 @@ await anarchistOverlay.createOverlay({
 
 Use `alignX` to position the text block, `textAlign` to align lines inside that block, and `maxWidth` to cap the block width. By default, the text block is only as wide as the longest rendered line.
 
+### Chyron
+
+```js
+const anarchistOverlay = game.modules.get('anarchist-overlay').api;
+
+const textHtml = await anarchistOverlay.createTextCrawlHtml({
+  frame: {
+    type: 'chyron'
+  },
+  effect: {
+    type: 'scroll',
+    duration: 18,
+    loop: true,
+    separator: ' // '
+  },
+  lines: [
+    {
+      text: 'MISSION UPDATE: HOSTILE CONTACTS DETECTED',
+      fontSize: '24px'
+    },
+    {
+      text: 'OBJECTIVE: SECURE THE LANDING ZONE',
+      fontSize: '24px'
+    },
+    {
+      text: 'WEATHER: EXTREME HUMIDITY',
+      fontSize: '24px'
+    }
+  ]
+});
+
+await anarchistOverlay.createOverlay({
+  id: 'mission-chyron',
+  positionX: 'center',
+  positionY: 'center',
+  closeTime: 18,
+  clearExisting: true
+}, textHtml);
+```
+
 Other frame types use the same text config shape:
 
 ```js
 frame: { type: 'lower-third' }
 frame: { type: 'terminal-panel' }
 frame: { type: 'alert-banner' }
+frame: { type: 'chyron' }
 ```
 
 Effect:
@@ -352,7 +395,9 @@ export type TextCrawlFrameType =
   | 'horizontal-bar'
   | 'lower-third'
   | 'terminal-panel'
-  | 'alert-banner';
+  | 'alert-banner'
+  | 'chyron';
+export type TextCrawlEffectType = 'typewriter' | 'scroll' | 'none';
 export type TextCrawlAlignment = 'start' | 'center' | 'end';
 
 export type TextCrawlConfig = {
@@ -361,10 +406,16 @@ export type TextCrawlConfig = {
   alignX?: TextCrawlAlignment; // positions the text block. Default: 'start'
   textAlign?: TextCrawlAlignment; // aligns each line inside the text block. Default: 'start'
   maxWidth?: string; // max text block width. Defaults to the longest rendered line.
-  typingTime?: number, // how long (in seconds) does the typing animation take per one line
-  delay?: number, // how long (in seconds) does the typing animation pause before next line is typed
+  typingTime?: number, // typewriter effect duration in seconds per line
+  delay?: number, // typewriter pause in seconds before the next line is typed
   frame?: {
     type?: TextCrawlFrameType; // defaults to 'cinematic-bars'
+  };
+  effect?: {
+    type?: TextCrawlEffectType; // defaults to 'typewriter', or 'scroll' for the 'chyron' frame
+    duration?: number; // scroll animation duration in seconds. Default: 18
+    loop?: boolean; // should scroll repeat. Defaults to true for scroll.
+    separator?: string; // text between scroll items. Default: ' // '
   };
   lines: { text: string, fontSize?: string }[], // list of lines to be rendered
   glitchEffect?: { time: number } | false; // adds a glitch effect. Should contain object with information how long should animation loop take
@@ -382,7 +433,7 @@ export type SceneTransitionConfig = {
   text?: TextCrawlConfig; // optional text crawl config rendered while doors are closed
   timing?: {
     doorCloseMs?: number; // door close animation duration. Default: 2200
-    briefingMs?: number; // how long text remains before doors open. Defaults from text line timing.
+    briefingMs?: number; // how long text remains before doors open. Defaults from the text effect duration.
     doorUnlockMs?: number; // delay after the unlock sound before doors open. Default: 700
     doorOpenMs?: number; // door open animation duration. Default: 2400
     fadeOutMs?: number; // fade-to-black animation duration. Default: 1200
@@ -395,7 +446,7 @@ export type SceneTransitionConfig = {
     doorSeal?: string; // local sound path for doors sealing shut. Defaults to the bundled sound.
     doorUnlock?: string; // local sound path before doors open. Defaults to the bundled sound.
     doorOpen?: string; // local sound path for door open. Defaults to the bundled sound.
-    typingClick?: string; // local click sound path scheduled with typed characters. Defaults to the bundled sound.
+    typingClick?: string; // local click sound path scheduled with typed characters for typewriter text. Defaults to the bundled sound.
     doorVolume?: number; // default: 0.8
     typingVolume?: number; // default: 0.35
   };

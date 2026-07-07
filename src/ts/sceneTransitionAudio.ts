@@ -1,4 +1,4 @@
-import type { TextCrawlConfig } from './textCrawl';
+import { isTextCrawlTypewriterEffect, type TextCrawlConfig } from './textCrawl';
 import type {
   AudioHelperGlobal,
   SceneTransitionSounds,
@@ -16,7 +16,7 @@ export const createTransitionAudioController = (): TransitionAudioController => 
       void playTrackedSound(src, volume, activeSounds);
     },
     startTyping: (text: TextCrawlConfig, sounds: Required<SceneTransitionSounds>, controller: TransitionController) => {
-      if (!sounds.typingClick) {
+      if (!sounds.typingClick || !isTextCrawlTypewriterEffect(text)) {
         return undefined;
       }
 

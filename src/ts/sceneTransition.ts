@@ -1,4 +1,3 @@
-import type { TextCrawlConfig } from './textCrawl';
 import type { ModuleSocket } from './types';
 import type {
   NormalizedSceneTransitionConfig,
@@ -11,7 +10,7 @@ import type {
   TransitionAudioController,
   TransitionController
 } from './sceneTransitionTypes';
-import { createTextCrawlHtml, validateTextCrawlConfig } from './textCrawl';
+import { createTextCrawlHtml, getTextCrawlDisplayDurationMs, validateTextCrawlConfig } from './textCrawl';
 import { moduleId } from './constants';
 import { createTransitionAudioController } from './sceneTransitionAudio';
 import {
@@ -458,7 +457,7 @@ const normalizeConfig = (config: SceneTransitionSocketConfig): NormalizedSceneTr
   const timing = {
     ...defaultTiming,
     ...config.timing,
-    briefingMs: config.timing?.briefingMs ?? calculateTextDuration(config.text)
+    briefingMs: config.timing?.briefingMs ?? getTextCrawlDisplayDurationMs(config.text)
   };
 
   return {
@@ -524,17 +523,6 @@ const notifyError = (error: unknown) => {
     ? error.message
     : 'Unable to play scene transition.';
   ui.notifications?.error(`Anarchist Overlay | ${message}`);
-};
-
-const calculateTextDuration = (text?: TextCrawlConfig) => {
-  if (!text?.lines.length) {
-    return 1500;
-  }
-
-  const typingTime = text.typingTime ?? 2;
-  const delay = text.delay ?? 1;
-  const totalSeconds = ((text.lines.length - 1) * (typingTime + delay)) + typingTime + 1;
-  return totalSeconds * 1000;
 };
 
 const finishLocalCancel = async (
