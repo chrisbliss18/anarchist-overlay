@@ -10,10 +10,11 @@
         style="
           width: calc({{textLength}}ch + 6px);
           animation:
-            typing {{typingTime}}s steps({{textLength}}) {{startDelay}}s normal backwards,
-            blink .5s step-end {{startDelay}}s {{#if isLastLine}}infinite{{else}}{{cursorDelay}}{{/if}} alternate
+            typing {{typingTime}}s steps({{textLength}}) {{startDelay}}s normal backwards
             {{#if glitchEffect}}, glitch {{glitchEffect.time}}s infinite{{/if}};
           font-size: {{fontSize}};
+          --cursor-delay: {{startDelay}}s;
+          --cursor-iterations: {{#if isLastLine}}infinite{{else}}{{cursorDelay}}{{/if}};
           {{#if glitchEffect}}
             --glitchTime: {{glitchEffect.time}}s;
           {{/if}}

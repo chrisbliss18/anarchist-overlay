@@ -10,9 +10,9 @@
   }
 }
 
-@keyframes blink {
+@keyframes cursorBlink {
   50% {
-    border-color: white
+    background-color: white
   }
 }
 
@@ -75,14 +75,25 @@
 }
 
 .text-crawl-line {
+  position: relative;
+  display: block;
   white-space: nowrap;
   overflow: hidden;
-  border-right: 3px solid;
   font-family: monospace;
   text-shadow: 3px 3px 2px black;
-  border-color: transparent;
   color: white;
   line-height: 1;
+}
+
+.text-crawl-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 3px;
+  height: 1em;
+  background-color: transparent;
+  animation: cursorBlink 0.5s step-end var(--cursor-delay) var(--cursor-iterations) alternate;
 }
 
 $offset: 0.05em;
