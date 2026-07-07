@@ -210,7 +210,11 @@ await anarchistOverlay.playSceneTransition({
 });
 ```
 
-The bundled transition sounds are used by default. Pass `sounds` only when you want to override an asset path or volume.
+The industrial door animation and bundled transition sounds are used by default. Pass `timing` or `sounds` only when you want to override the defaults.
+
+Bundled sound defaults live under `modules/anarchist-overlay/sounds/`: `industrial-door-close.ogg`, `industrial-door-seal.ogg`, `industrial-door-unlock.ogg`, `industrial-door-open.ogg`, and `mechanical-typing-click.ogg`.
+
+The `sceneName` value must match exactly one scene. If no scene matches, or if multiple scenes share the same name, the GM receives an error notification and the transition is not started.
 
 ## Config
 ```js
@@ -243,21 +247,21 @@ export type SceneTransitionConfig = {
   id?: string; // optional transition id, defaults to 'scene-transition'
   text?: TextCrawlConfig; // optional text crawl config rendered while doors are closed
   timing?: {
-    doorCloseMs?: number; // door close animation duration
+    doorCloseMs?: number; // door close animation duration. Default: 2200
     briefingMs?: number; // how long text remains before doors open. Defaults from text line timing.
-    doorUnlockMs?: number; // delay after the unlock sound before doors open
-    doorOpenMs?: number; // door open animation duration
-    textFadeMs?: number; // text fade duration after doors open
-    sceneReadyTimeoutMs?: number; // max wait for the target scene canvas to be ready
+    doorUnlockMs?: number; // delay after the unlock sound before doors open. Default: 700
+    doorOpenMs?: number; // door open animation duration. Default: 2400
+    textFadeMs?: number; // text fade duration after doors open. Default: 900
+    sceneReadyTimeoutMs?: number; // max wait for the target scene canvas to be ready. Default: 10000
   };
   sounds?: {
-    doorClose?: string; // optional local sound path for door close
-    doorSeal?: string; // optional local sound path for doors sealing shut
-    doorUnlock?: string; // optional local sound path before doors open
-    doorOpen?: string; // optional local sound path for door open
-    typingClick?: string; // optional local click sound path scheduled with typed characters
-    doorVolume?: number;
-    typingVolume?: number;
+    doorClose?: string; // local sound path for door close. Defaults to the bundled sound.
+    doorSeal?: string; // local sound path for doors sealing shut. Defaults to the bundled sound.
+    doorUnlock?: string; // local sound path before doors open. Defaults to the bundled sound.
+    doorOpen?: string; // local sound path for door open. Defaults to the bundled sound.
+    typingClick?: string; // local click sound path scheduled with typed characters. Defaults to the bundled sound.
+    doorVolume?: number; // default: 0.8
+    typingVolume?: number; // default: 0.35
   };
   aboveUi?: boolean; // defaults to true
   blockInteractions?: boolean; // defaults to true

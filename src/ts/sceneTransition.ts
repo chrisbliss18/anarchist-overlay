@@ -55,15 +55,20 @@ const defaultSounds: Required<SceneTransitionSounds> = {
   typingVolume: 0.35
 };
 
-export const playSceneTransition = (socket: ModuleSocket) => (config: SceneTransitionConfig) => {
-  assertGM('play scene transitions');
-  const sceneId = resolveSceneIdByName(config.sceneName);
+export const playSceneTransition = (socket: ModuleSocket) => async (config: SceneTransitionConfig) => {
+  try {
+    assertGM('play scene transitions');
+    const sceneId = resolveSceneIdByName(config.sceneName);
 
-  return socket.executeForEveryone(
-    'playSceneTransition',
-    { ...config, sceneId },
-    (game as ReadyGame).user.id
-  );
+    return await socket.executeForEveryone(
+      'playSceneTransition',
+      { ...config, sceneId },
+      (game as ReadyGame).user.id
+    );
+  } catch (error) {
+    notifyError(error);
+    throw error;
+  }
 };
 
 export const setupSceneTransitionSocket = (socket: ModuleSocket) => {
@@ -294,7 +299,7 @@ const resolveSceneIdByName = (name: string) => {
     throw new Error(`Unable to find scene named "${sceneName}".`);
   }
   if (matches.length > 1) {
-    throw new Error(`Scene name "${sceneName}" is ambiguous. Rename duplicate scenes or use a unique scene name.`);
+    throw new Error(`Scene name "${sceneName}" matches ${matches.length} scenes. Rename duplicate scenes or use a unique scene name.`);
   }
 
   const sceneId = matches[0].id;
@@ -303,6 +308,13 @@ const resolveSceneIdByName = (name: string) => {
   }
 
   return sceneId;
+};
+
+const notifyError = (error: unknown) => {
+  const message = error instanceof Error
+    ? error.message
+    : 'Unable to play scene transition.';
+  ui.notifications?.error(`Anarchist Overlay | ${message}`);
 };
 
 const calculateTextDuration = (text?: TextCrawlConfig) => {
