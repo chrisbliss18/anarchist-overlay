@@ -20,8 +20,10 @@
           <div
             class="text-crawl-line-box"
             style="
-              width: calc({{textLength}}ch + 6px);
               font-size: {{fontSize}};
+              --text-length: {{textLength}};
+              --typing-time: {{typingTime}}s;
+              --start-delay: {{startDelay}}s;
               --cursor-delay: {{startDelay}}s;
               --cursor-iterations: {{#if isLastLine}}infinite{{else}}{{cursorDelay}}{{/if}};
               {{#if glitchEffect}}
@@ -29,10 +31,11 @@
               {{/if}}
             "
           >
+            <div class="text-crawl-line-sizer" aria-hidden="true">{{text}}</div>
             <div
               style="
                 animation:
-                  typing {{typingTime}}s steps({{textLength}}) {{startDelay}}s normal backwards
+                  typing var(--typing-time) steps(var(--text-length)) var(--start-delay) normal backwards
                   {{#if glitchEffect}}, glitch {{glitchEffect.time}}s infinite{{/if}};
               "
               class="text-crawl-line{{#if glitchEffect}} glitch{{/if}}"
