@@ -12,7 +12,10 @@ import type {
   TextCrawlAlignment,
   TextCrawlConfig,
   TextCrawlEffectType,
-  TextCrawlFrameType
+  TextCrawlFrameType,
+  TextCrawlSenderConfig,
+  TextCrawlSenderImageFit,
+  TextCrawlSenderPosition
 } from './textCrawl';
 import { createTextCrawlHtml } from './textCrawl';
 import { resolvePresentationThemeType, type PresentationThemeType } from './theme';
@@ -49,6 +52,23 @@ export type BriefingAnimationConfig = {
   separator?: string;
 };
 
+export type BriefingSenderActorImageType = 'portrait' | 'token';
+
+export type BriefingSenderActorSelector = {
+  uuid?: string;
+  name?: string;
+  image?: BriefingSenderActorImageType;
+};
+
+export type BriefingSenderConfig = {
+  name?: string;
+  subtitle?: string;
+  image?: string;
+  imageFit?: TextCrawlSenderImageFit;
+  position?: TextCrawlSenderPosition;
+  actor?: BriefingSenderActorSelector;
+};
+
 export type BriefingConfig = {
   frame?: TextCrawlFrameType;
   style?: PresentationStyleType;
@@ -56,6 +76,7 @@ export type BriefingConfig = {
   animation?: BriefingAnimationConfig;
   lines: BriefingLineConfig[];
   glitch?: { cycleMs: number } | false;
+  sender?: BriefingSenderConfig;
 };
 
 export type SceneTransitionVisualConfig = {
@@ -145,6 +166,41 @@ type SceneTransitionPresetDefaults = {
   timeline: SceneTransitionTimelineConfig;
 };
 
+type FoundryActorLike = {
+  documentName?: string;
+  name?: string;
+  img?: string;
+  thumbnail?: string;
+  prototypeToken?: {
+    texture?: {
+      src?: string;
+    };
+  };
+};
+
+type FoundryTokenLike = {
+  documentName?: string;
+  name?: string;
+  actor?: FoundryActorLike | null;
+  texture?: {
+    src?: string;
+  };
+};
+
+type FoundryActorCollectionLike = {
+  contents?: FoundryActorLike[];
+};
+
+type FoundryUuidGlobal = typeof globalThis & {
+  fromUuid?: (uuid: string) => Promise<unknown | null>;
+};
+
+type ResolvedSenderActor = {
+  name?: string;
+  portraitImage?: string;
+  tokenImage?: string;
+};
+
 const sceneTransitionPresets: Record<SceneTransitionPresetType, SceneTransitionPresetDefaults> = {
   bulkhead: {
     transition: {
@@ -195,8 +251,9 @@ const sceneTransitionPresets: Record<SceneTransitionPresetType, SceneTransitionP
 export const transitionToScene = (socket: ModuleSocket) => {
   const playTransition = playSceneTransition(socket);
 
-  return (config: TransitionToSceneConfig) => {
-    return playTransition(toSceneTransitionConfig(config));
+  return async (config: TransitionToSceneConfig) => {
+    const transitionConfig = await preparePublicConfig(() => toSceneTransitionConfig(config));
+    return playTransition(transitionConfig);
   };
 };
 
@@ -208,7 +265,8 @@ export const showTextOverlay = (socket: ModuleSocket) => {
       throw new Error('Text overlay config.text is required.');
     }
 
-    const html = await createTextCrawlHtml(toTextCrawlConfig(config.text));
+    const textConfig = await preparePublicConfig(() => toTextCrawlConfig(config.text));
+    const html = await preparePublicConfig(() => createTextCrawlHtml(textConfig));
     return showHtml({
       id: config.id,
       html,
@@ -228,7 +286,7 @@ export const showHtmlOverlay = (socket: ModuleSocket) => {
   };
 };
 
-const toSceneTransitionConfig = (config: TransitionToSceneConfig): SceneTransitionConfig => {
+const toSceneTransitionConfig = async (config: TransitionToSceneConfig): Promise<SceneTransitionConfig> => {
   validateTransitionToSceneConfig(config);
   const preset = sceneTransitionPresets[resolvePresetType(config.preset)];
   const transitionType = config.transition?.type ?? preset.transition.type;
@@ -247,7 +305,7 @@ const toSceneTransitionConfig = (config: TransitionToSceneConfig): SceneTransiti
     soundProfile: {
       type: audio?.profile ?? preset.audio.profile
     },
-    text: config.briefing ? toTextCrawlConfig(config.briefing) : undefined,
+    text: config.briefing ? await toTextCrawlConfig(config.briefing) : undefined,
     timing: toSceneTransitionTiming({
       ...preset.timeline,
       ...config.timeline
@@ -258,10 +316,11 @@ const toSceneTransitionConfig = (config: TransitionToSceneConfig): SceneTransiti
   };
 };
 
-const toTextCrawlConfig = (config: BriefingConfig): TextCrawlConfig => {
+const toTextCrawlConfig = async (config: BriefingConfig): Promise<TextCrawlConfig> => {
   const animation = config.animation;
   const layout = config.layout;
   const isTypewriterAnimation = !animation?.type || animation.type === 'typewriter';
+  const sender = await resolveBriefingSender(config.sender);
 
   return {
     offsetX: layout?.offset?.x,
@@ -291,7 +350,8 @@ const toTextCrawlConfig = (config: BriefingConfig): TextCrawlConfig => {
       ? {
           time: msToSeconds(config.glitch.cycleMs)
         }
-      : config.glitch
+      : config.glitch,
+    sender
   };
 };
 
@@ -358,6 +418,160 @@ const validateHtmlOverlayConfig = (config: ShowHtmlOverlayConfig) => {
   if (typeof config.html !== 'string') {
     throw new Error('HTML overlay config.html must be a string.');
   }
+};
+
+const preparePublicConfig = async <T>(prepare: () => Promise<T>): Promise<T> => {
+  try {
+    return await prepare();
+  } catch (error) {
+    notifyApiError(error);
+    throw error;
+  }
+};
+
+const resolveBriefingSender = async (sender?: BriefingSenderConfig): Promise<TextCrawlSenderConfig | undefined> => {
+  if (!sender) {
+    return undefined;
+  }
+
+  const actor = sender.actor ? await resolveSenderActor(sender.actor) : undefined;
+  const name = sender.name?.trim() || actor?.name;
+  if (!name) {
+    throw new Error('Briefing sender requires either sender.name or sender.actor.');
+  }
+
+  const manualImage = isActorImageSelector(sender.image) && sender.actor
+    ? undefined
+    : sender.image?.trim();
+  const actorImageType = sender.actor?.image ?? (isActorImageSelector(sender.image) ? sender.image : 'portrait');
+  const actorImage = actorImageType === 'token'
+    ? actor?.tokenImage
+    : actor?.portraitImage;
+
+  return {
+    name,
+    subtitle: sender.subtitle,
+    image: manualImage || actorImage,
+    imageFit: sender.imageFit,
+    position: sender.position
+  };
+};
+
+const resolveSenderActor = async (selector: BriefingSenderActorSelector): Promise<ResolvedSenderActor> => {
+  if (selector.uuid) {
+    return resolveSenderActorByUuid(selector.uuid);
+  }
+
+  if (selector.name) {
+    return resolveSenderActorByName(selector.name);
+  }
+
+  throw new Error('Briefing sender.actor requires either actor.uuid or actor.name.');
+};
+
+const resolveSenderActorByUuid = async (uuid: string): Promise<ResolvedSenderActor> => {
+  const trimmedUuid = uuid.trim();
+  if (!trimmedUuid) {
+    throw new Error('Briefing sender.actor.uuid must be a non-empty string.');
+  }
+
+  const fromUuid = (globalThis as FoundryUuidGlobal).fromUuid;
+  if (typeof fromUuid !== 'function') {
+    throw new Error('Unable to resolve briefing sender actor UUID: fromUuid is not available.');
+  }
+
+  const document = await fromUuid(trimmedUuid);
+  if (!document) {
+    throw new Error(`Unable to find briefing sender actor with UUID "${trimmedUuid}".`);
+  }
+
+  const actor = toResolvedSenderActor(document);
+  if (!actor) {
+    throw new Error(`Briefing sender UUID "${trimmedUuid}" did not resolve to an actor or token document.`);
+  }
+
+  return actor;
+};
+
+const resolveSenderActorByName = (name: string): ResolvedSenderActor => {
+  const actorName = name.trim();
+  if (!actorName) {
+    throw new Error('Briefing sender.actor.name must be a non-empty string.');
+  }
+
+  const actors = (game as ReadyGame).actors as unknown as FoundryActorCollectionLike | undefined;
+  if (!actors?.contents) {
+    throw new Error('Unable to resolve briefing sender actor name: actor collection is not available.');
+  }
+
+  const matches = actors.contents.filter(actor => actor.name === actorName);
+  if (matches.length === 0) {
+    throw new Error(`Unable to find briefing sender actor named "${actorName}".`);
+  }
+  if (matches.length > 1) {
+    throw new Error(`Briefing sender actor name "${actorName}" matches ${matches.length} actors. Use sender.actor.uuid or rename duplicate actors.`);
+  }
+
+  return resolvedSenderActorFromActor(matches[0]);
+};
+
+const toResolvedSenderActor = (document: unknown): ResolvedSenderActor | undefined => {
+  if (isActorLike(document)) {
+    return resolvedSenderActorFromActor(document);
+  }
+
+  if (isTokenLike(document)) {
+    return resolvedSenderActorFromToken(document);
+  }
+
+  return undefined;
+};
+
+const resolvedSenderActorFromActor = (actor: FoundryActorLike): ResolvedSenderActor => {
+  return {
+    name: actor.name,
+    portraitImage: actor.img || actor.thumbnail,
+    tokenImage: actor.prototypeToken?.texture?.src || actor.img || actor.thumbnail
+  };
+};
+
+const resolvedSenderActorFromToken = (token: FoundryTokenLike): ResolvedSenderActor => {
+  return {
+    name: token.actor?.name || token.name,
+    portraitImage: token.actor?.img || token.actor?.thumbnail || token.texture?.src,
+    tokenImage: token.texture?.src || token.actor?.prototypeToken?.texture?.src || token.actor?.img || token.actor?.thumbnail
+  };
+};
+
+const isActorLike = (document: unknown): document is FoundryActorLike => {
+  if (!document || typeof document !== 'object') {
+    return false;
+  }
+
+  const actor = document as FoundryActorLike;
+  return actor.documentName === 'Actor'
+    || actor.prototypeToken !== undefined;
+};
+
+const isTokenLike = (document: unknown): document is FoundryTokenLike => {
+  if (!document || typeof document !== 'object') {
+    return false;
+  }
+
+  const token = document as FoundryTokenLike;
+  return token.documentName === 'Token'
+    || (token.actor !== undefined && token.texture !== undefined);
+};
+
+const isActorImageSelector = (image?: string): image is BriefingSenderActorImageType => {
+  return image === 'portrait' || image === 'token';
+};
+
+const notifyApiError = (error: unknown) => {
+  const message = error instanceof Error
+    ? error.message
+    : 'Unable to prepare Anarchist Overlay config.';
+  ui.notifications?.error(`Anarchist Overlay | ${message}`);
 };
 
 const resolvePresetType = (preset?: string): SceneTransitionPresetType => {

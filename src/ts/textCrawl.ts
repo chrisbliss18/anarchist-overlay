@@ -40,6 +40,17 @@ type TextCrawlLineConfig = {
   fontSize?: string;
 };
 
+export type TextCrawlSenderPosition = 'left' | 'right' | 'top';
+export type TextCrawlSenderImageFit = 'cover' | 'contain';
+
+export type TextCrawlSenderConfig = {
+  name: string;
+  subtitle?: string;
+  image?: string;
+  imageFit?: TextCrawlSenderImageFit;
+  position?: TextCrawlSenderPosition;
+};
+
 export type TextCrawlConfig = {
   offsetX?: string;
   offsetY?: string;
@@ -53,9 +64,13 @@ export type TextCrawlConfig = {
   effect?: TextCrawlEffectConfig;
   lines: TextCrawlLineConfig[];
   glitchEffect?: { time: number } | false;
+  sender?: TextCrawlSenderConfig;
 };
 
 type NormalizedTextCrawlLineConfig = Required<TextCrawlLineConfig>;
+type NormalizedTextCrawlSenderConfig = Required<TextCrawlSenderConfig> & {
+  hasImage: boolean;
+};
 
 type NormalizedTextCrawlEffectConfig = {
   type: TextCrawlEffectType;
@@ -90,6 +105,10 @@ type NormalizedConfig = {
   lineEffectDuration: number;
   lines: NormalizedTextCrawlLineConfig[];
   glitchEffect: { time: number } | false;
+  sender?: NormalizedTextCrawlSenderConfig;
+  senderPositionClass: string;
+  senderImageFitClass: string;
+  hasSender: boolean;
 };
 
 const defaultFrameType: TextCrawlFrameType = 'cinematic-bars';
@@ -171,6 +190,7 @@ export const validateTextCrawlConfig = (config: TextCrawlConfig) => {
   validateTextCrawlTimingConfig(config);
   validateTextCrawlEffectConfig(config.effect);
   validateTextCrawlGlitchConfig(config);
+  validateTextCrawlSenderConfig(config.sender);
   validateTextCrawlEffectFrameCompatibility(frameType, effectType);
   validateTextCrawlLines(config);
 };
@@ -227,6 +247,7 @@ export const getTextCrawlDisplayDurationMs = (text?: TextCrawlConfig) => {
   validateTextCrawlTimingConfig(text);
   validateTextCrawlEffectConfig(text.effect);
   validateTextCrawlGlitchConfig(text);
+  validateTextCrawlSenderConfig(text.sender);
   validateTextCrawlEffectFrameCompatibility(frameType, effectType);
   validateTextCrawlLines(text);
 
@@ -260,6 +281,7 @@ const normalizeConfig = (config: TextCrawlConfig): NormalizedConfig => {
   validateTextCrawlTimingConfig(config);
   validateTextCrawlEffectConfig(config.effect);
   validateTextCrawlGlitchConfig(config);
+  validateTextCrawlSenderConfig(config.sender);
   validateTextCrawlEffectFrameCompatibility(frameType, effectType);
   validateTextCrawlLines(config);
   const effect = {
@@ -269,6 +291,8 @@ const normalizeConfig = (config: TextCrawlConfig): NormalizedConfig => {
     loop: config.effect?.loop ?? effectType === 'scroll',
     separator: config.effect?.separator ?? defaultScrollSeparator
   };
+
+  const sender = normalizeSenderConfig(config.sender);
 
   return {
     offsetX: config.offsetX ?? '0',
@@ -298,7 +322,11 @@ const normalizeConfig = (config: TextCrawlConfig): NormalizedConfig => {
     scrollIterationCount: effect.loop ? 'infinite' : '1',
     lineEffectDuration: effect.duration,
     lines: config.lines.map(line => ({text: line.text, fontSize: line.fontSize ?? '32px'})),
-    glitchEffect: config.glitchEffect ?? false
+    glitchEffect: config.glitchEffect ?? false,
+    sender,
+    senderPositionClass: sender ? `text-crawl--sender-${sender.position}` : '',
+    senderImageFitClass: sender ? `text-crawl--sender-image-${sender.imageFit}` : '',
+    hasSender: !!sender
   };
 }
 
@@ -355,6 +383,27 @@ const validateTextCrawlGlitchConfig = (config: TextCrawlConfig) => {
   }
 };
 
+const validateTextCrawlSenderConfig = (sender?: TextCrawlSenderConfig) => {
+  if (!sender) {
+    return;
+  }
+
+  if (typeof sender.name !== 'string' || !sender.name.trim()) {
+    throw new Error('Text crawl sender.name must be a non-empty string.');
+  }
+
+  if (sender.subtitle !== undefined && (typeof sender.subtitle !== 'string' || !sender.subtitle.trim())) {
+    throw new Error('Text crawl sender.subtitle must be a non-empty string.');
+  }
+
+  if (sender.image !== undefined && (typeof sender.image !== 'string' || !sender.image.trim())) {
+    throw new Error('Text crawl sender.image must be a non-empty string.');
+  }
+
+  resolveTextCrawlSenderPosition(sender.position);
+  resolveTextCrawlSenderImageFit(sender.imageFit);
+};
+
 const validateTextCrawlLines = (config: TextCrawlConfig) => {
   if (!Array.isArray(config.lines) || config.lines.length === 0) {
     throw new Error('Text crawl lines must contain at least one line.');
@@ -375,6 +424,41 @@ const validateOptionalTextCssString = (value: string | undefined, fieldName: str
   if (value !== undefined && (typeof value !== 'string' || !value.trim())) {
     throw new Error(`Text crawl ${fieldName} must be a non-empty CSS value string.`);
   }
+};
+
+const normalizeSenderConfig = (sender?: TextCrawlSenderConfig): NormalizedTextCrawlSenderConfig | undefined => {
+  if (!sender) {
+    return undefined;
+  }
+
+  const image = sender.image?.trim() ?? '';
+
+  return {
+    name: sender.name.trim(),
+    subtitle: sender.subtitle?.trim() ?? '',
+    image,
+    imageFit: resolveTextCrawlSenderImageFit(sender.imageFit),
+    position: resolveTextCrawlSenderPosition(sender.position),
+    hasImage: !!image
+  };
+};
+
+const resolveTextCrawlSenderPosition = (position?: string): TextCrawlSenderPosition => {
+  const resolvedPosition = position ?? 'left';
+  if (resolvedPosition === 'left' || resolvedPosition === 'right' || resolvedPosition === 'top') {
+    return resolvedPosition;
+  }
+
+  throw new Error(`Unknown text crawl sender.position value "${resolvedPosition}". Expected "left", "right", or "top".`);
+};
+
+const resolveTextCrawlSenderImageFit = (imageFit?: string): TextCrawlSenderImageFit => {
+  const resolvedImageFit = imageFit ?? 'cover';
+  if (resolvedImageFit === 'cover' || resolvedImageFit === 'contain') {
+    return resolvedImageFit;
+  }
+
+  throw new Error(`Unknown text crawl sender.imageFit value "${resolvedImageFit}". Expected "cover" or "contain".`);
 };
 
 const validateTextCrawlEffectFrameCompatibility = (

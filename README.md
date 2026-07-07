@@ -226,6 +226,13 @@ briefing: {
     durationMs: 1600,
     lineDelayMs: 350
   },
+  sender: {
+    name: 'LT. VERA KAO',
+    subtitle: 'Evergreen Command',
+    image: 'systems/lancer/assets/tokens/verakao.webp',
+    imageFit: 'cover',
+    position: 'left'
+  },
   lines: [
     { text: 'MISSION 1: BUG HUNT', fontSize: '52px' },
     { text: 'COMBAT: TRAPDOOR SPIDER', fontSize: '38px' }
@@ -257,6 +264,50 @@ Available text animations:
 ```
 
 The `scroll` animation is supported only by `chyron` and `horizontal-bar`.
+
+### Senders
+
+Briefings can include a sender block. It is designed for `mission-card`, `panel`, and `lower-third` frames.
+
+Manual sender:
+
+```js
+sender: {
+  name: 'LT. VERA KAO',
+  subtitle: 'Evergreen Command',
+  image: 'systems/lancer/assets/tokens/verakao.webp',
+  imageFit: 'cover',
+  position: 'left'
+}
+```
+
+Actor lookup by exact name:
+
+```js
+sender: {
+  actor: {
+    name: 'LT. VERA KAO',
+    image: 'portrait'
+  },
+  subtitle: 'Evergreen Command',
+  position: 'right'
+}
+```
+
+Actor lookup by UUID:
+
+```js
+sender: {
+  actor: {
+    uuid: 'Actor.abc123',
+    image: 'token'
+  },
+  subtitle: 'Encrypted Channel',
+  position: 'top'
+}
+```
+
+When using `actor.name`, the name must match exactly one world actor. If multiple actors share the same name, use `actor.uuid`.
 
 ## Text Overlays
 
@@ -424,6 +475,18 @@ type BriefingConfig = {
     lineDelayMs?: number;
     loop?: boolean;
     separator?: string;
+  };
+  sender?: {
+    name?: string;
+    subtitle?: string;
+    image?: string;
+    imageFit?: 'cover' | 'contain';
+    position?: 'left' | 'right' | 'top';
+    actor?: {
+      uuid?: string;
+      name?: string;
+      image?: 'portrait' | 'token';
+    };
   };
   lines: Array<{
     text: string;
