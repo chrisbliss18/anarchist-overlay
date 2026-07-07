@@ -396,7 +396,11 @@
 }
 
 .text-crawl--lower-third.text-crawl--has-sender .text-crawl__text-block {
-  width: min(860px, calc(100vw - 12vw));
+  width: min(
+    calc(var(--text-crawl-max-width) + var(--text-crawl-sender-inline-space)),
+    calc(100vw - 12vw)
+  );
+  min-width: min(760px, calc(100vw - 12vw));
 }
 
 .text-crawl--mission-card {
