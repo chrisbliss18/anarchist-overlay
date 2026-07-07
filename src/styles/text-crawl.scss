@@ -126,6 +126,7 @@
   --text-crawl-sender-min-width: min(260px, 34vw);
   --text-crawl-sender-max-width: 320px;
   --text-crawl-sender-gap: 12px;
+  --text-crawl-sender-padding-x: clamp(12px, 2vw, 22px);
   --text-crawl-sender-image-size: clamp(58px, 9vw, 96px);
   --text-crawl-sender-image-aspect: 1;
   --text-crawl-sender-image-radius: 4px;
@@ -186,8 +187,6 @@
 
   .text-crawl__sender {
     order: 2;
-    padding-right: 0;
-    padding-left: clamp(12px, 2vw, 22px);
     border-right: 0;
     border-left: 1px solid var(--text-crawl-sender-border);
   }
@@ -203,8 +202,7 @@
     width: 100%;
     max-width: none;
     min-width: 0;
-    padding-right: 0;
-    padding-bottom: 12px;
+    padding: 0 var(--text-crawl-sender-padding-x) 12px;
     border-right: 0;
     border-bottom: 1px solid var(--text-crawl-sender-border);
   }
@@ -220,7 +218,7 @@
   box-sizing: border-box;
   min-width: var(--text-crawl-sender-min-width);
   max-width: var(--text-crawl-sender-max-width);
-  padding: 10px clamp(12px, 2vw, 22px) 10px 0;
+  padding: 10px var(--text-crawl-sender-padding-x);
   border-right: 1px solid var(--text-crawl-sender-border);
   background: linear-gradient(90deg, var(--text-crawl-sender-background), rgba(0, 0, 0, 0));
 }
@@ -264,6 +262,7 @@
   --text-crawl-sender-min-width: min(220px, 30vw);
   --text-crawl-sender-max-width: 260px;
   --text-crawl-sender-gap: 9px;
+  --text-crawl-sender-padding-x: clamp(9px, 1.6vw, 16px);
   --text-crawl-sender-image-size: clamp(44px, 7vw, 64px);
   --text-crawl-sender-label-size: 9px;
   --text-crawl-sender-name-size: clamp(14px, 1.8vw, 18px);
@@ -275,6 +274,7 @@
   --text-crawl-sender-min-width: min(320px, 42vw);
   --text-crawl-sender-max-width: 420px;
   --text-crawl-sender-gap: 16px;
+  --text-crawl-sender-padding-x: clamp(14px, 2.4vw, 28px);
   --text-crawl-sender-image-size: clamp(76px, 11vw, 126px);
   --text-crawl-sender-label-size: 11px;
   --text-crawl-sender-name-size: clamp(19px, 2.5vw, 28px);
@@ -958,7 +958,7 @@
       width: 100%;
       max-width: none;
       min-width: 0;
-      padding: 0 0 12px;
+      padding: 0 var(--text-crawl-sender-padding-x) 12px;
       border-right: 0;
       border-left: 0;
       border-bottom: 1px solid var(--text-crawl-sender-border);
