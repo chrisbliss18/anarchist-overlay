@@ -22,9 +22,18 @@
 
 .text-crawl__content {
   position: relative;
+  display: flex;
+  justify-content: var(--text-crawl-align-x);
+  box-sizing: border-box;
+  width: 100%;
   z-index: 1;
-  margin-left: var(--text-crawl-offset-x);
   margin-top: var(--text-crawl-offset-y);
+}
+
+.text-crawl__text-block {
+  width: max-content;
+  max-width: min(var(--text-crawl-max-width), calc(100vw - 32px));
+  transform: translateX(var(--text-crawl-offset-x));
 }
 
 .text-crawl__cinematic-bar {
@@ -55,9 +64,7 @@
     --horizontal-bar-padding-x: clamp(20px, 3vw, 42px);
     box-sizing: border-box;
     width: 100vw;
-    margin-left: 0;
     padding: 18px var(--horizontal-bar-padding-x);
-    padding-left: calc(var(--horizontal-bar-padding-x) + var(--text-crawl-offset-x));
     border-top: 2px solid rgba(255, 216, 87, 0.95);
     border-bottom: 2px solid rgba(255, 216, 87, 0.95);
     background:
@@ -67,6 +74,13 @@
       0 0 28px rgba(0, 0, 0, 0.8),
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       inset 0 -1px 0 rgba(0, 0, 0, 0.65);
+  }
+
+  .text-crawl__text-block {
+    max-width: min(
+      var(--text-crawl-max-width),
+      calc(100vw - var(--horizontal-bar-padding-x) - var(--horizontal-bar-padding-x))
+    );
   }
 }
 
@@ -83,17 +97,29 @@
 
 .text-crawl--none {
   display: block;
+  width: 100%;
 }
 
 .text-crawl-line {
   position: relative;
   display: block;
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   font-family: monospace;
   text-shadow: 3px 3px 2px black;
   color: white;
   line-height: 1;
+}
+
+.text-crawl-line-row {
+  display: flex;
+  justify-content: var(--text-crawl-text-align);
+  width: 100%;
+}
+
+.text-crawl-line-box {
+  max-width: 100%;
 }
 
 .text-crawl-line::after {

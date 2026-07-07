@@ -1,6 +1,7 @@
 import {moduleId} from "./constants";
 
 export type TextCrawlFrameType = 'none' | 'cinematic-bars' | 'horizontal-bar';
+export type TextCrawlAlignment = 'start' | 'center' | 'end';
 
 export type TextCrawlFrameConfig = {
   type?: TextCrawlFrameType;
@@ -14,6 +15,9 @@ type TextCrawlLineConfig = {
 export type TextCrawlConfig = {
   offsetX?: string;
   offsetY?: string;
+  alignX?: TextCrawlAlignment;
+  textAlign?: TextCrawlAlignment;
+  maxWidth?: string;
   typingTime?: number;
   delay?: number;
   frame?: TextCrawlFrameConfig;
@@ -24,6 +28,11 @@ export type TextCrawlConfig = {
 type NormalizedConfig = {
   offsetX: string;
   offsetY: string;
+  alignX: TextCrawlAlignment;
+  alignXCss: string;
+  textAlign: TextCrawlAlignment;
+  textAlignCss: string;
+  maxWidth: string;
   typingTime: number;
   delay: number;
   frame: Required<TextCrawlFrameConfig>;
@@ -58,12 +67,45 @@ export const resolveTextCrawlFrameType = (frameType?: string): TextCrawlFrameTyp
   throw new Error(`Unknown text crawl frame type "${resolvedFrameType}". Expected "none", "cinematic-bars", or "horizontal-bar".`);
 };
 
+export const validateTextCrawlConfig = (config: TextCrawlConfig) => {
+  resolveTextCrawlFrameType(config.frame?.type);
+  resolveTextCrawlAlignment(config.alignX, 'alignX');
+  resolveTextCrawlAlignment(config.textAlign, 'textAlign');
+};
+
+const resolveTextCrawlAlignment = (
+  alignment: string | undefined,
+  fieldName: 'alignX' | 'textAlign'
+): TextCrawlAlignment => {
+  const resolvedAlignment = alignment ?? 'start';
+  if (resolvedAlignment === 'start' || resolvedAlignment === 'center' || resolvedAlignment === 'end') {
+    return resolvedAlignment;
+  }
+
+  throw new Error(`Unknown text crawl ${fieldName} value "${resolvedAlignment}". Expected "start", "center", or "end".`);
+};
+
+const getCssAlignment = (alignment: TextCrawlAlignment) => {
+  if (alignment === 'center') {
+    return 'center';
+  }
+
+  return alignment === 'end' ? 'flex-end' : 'flex-start';
+};
+
 const normalizeConfig = (config: TextCrawlConfig): NormalizedConfig => {
   const frameType = resolveTextCrawlFrameType(config.frame?.type);
+  const alignX = resolveTextCrawlAlignment(config.alignX, 'alignX');
+  const textAlign = resolveTextCrawlAlignment(config.textAlign, 'textAlign');
 
   return {
     offsetX: config.offsetX ?? '0',
     offsetY: config.offsetY ?? '0',
+    alignX,
+    alignXCss: getCssAlignment(alignX),
+    textAlign,
+    textAlignCss: getCssAlignment(textAlign),
+    maxWidth: config.maxWidth ?? 'max-content',
     typingTime: config.typingTime ?? 2,
     delay: config.delay ?? 1,
     frame: {

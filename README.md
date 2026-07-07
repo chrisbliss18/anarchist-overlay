@@ -71,6 +71,9 @@ const anarchistOverlay = game.modules.get('anarchist-overlay').api;
 const textHtml = await anarchistOverlay.createTextCrawlHtml({
   typingTime: 1.2,
   delay: 0.3,
+  alignX: 'center',
+  textAlign: 'center',
+  maxWidth: '720px',
   frame: {
     type: 'horizontal-bar'
   },
@@ -94,6 +97,8 @@ await anarchistOverlay.createOverlay({
   clearExisting: true
 }, textHtml);
 ```
+
+Use `alignX` to position the text block, `textAlign` to align lines inside that block, and `maxWidth` to cap the block width. By default, the text block is only as wide as the longest rendered line.
 
 Effect:
 
@@ -256,6 +261,9 @@ await anarchistOverlay.playSceneTransition({
   text: {
     typingTime: 1.5,
     delay: 0.5,
+    alignX: 'center',
+    textAlign: 'center',
+    maxWidth: '760px',
     frame: {
       type: 'horizontal-bar'
     },
@@ -300,10 +308,14 @@ export type OverlayConfig = {
 }
 //Text config
 export type TextCrawlFrameType = 'none' | 'cinematic-bars' | 'horizontal-bar';
+export type TextCrawlAlignment = 'start' | 'center' | 'end';
 
 export type TextCrawlConfig = {
-  offsetX?: string; // for example '15px'
+  offsetX?: string; // for example '15px'. Applied after alignX.
   offsetY?: string; // for example '15px'
+  alignX?: TextCrawlAlignment; // positions the text block. Default: 'start'
+  textAlign?: TextCrawlAlignment; // aligns each line inside the text block. Default: 'start'
+  maxWidth?: string; // max text block width. Defaults to the longest rendered line.
   typingTime?: number, // how long (in seconds) does the typing animation take per one line
   delay?: number, // how long (in seconds) does the typing animation pause before next line is typed
   frame?: {

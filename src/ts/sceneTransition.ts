@@ -11,7 +11,7 @@ import type {
   TransitionAudioController,
   TransitionController
 } from './sceneTransitionTypes';
-import { createTextCrawlHtml, resolveTextCrawlFrameType } from './textCrawl';
+import { createTextCrawlHtml, validateTextCrawlConfig } from './textCrawl';
 import { moduleId } from './constants';
 import { createTransitionAudioController } from './sceneTransitionAudio';
 import {
@@ -64,8 +64,8 @@ export const playSceneTransition = (socket: ModuleSocket) => async (config: Scen
   try {
     assertGM('play scene transitions');
     resolveSceneTransitionType(config.transition?.type);
-    if (config.text?.frame?.type) {
-      resolveTextCrawlFrameType(config.text.frame.type);
+    if (config.text) {
+      validateTextCrawlConfig(config.text);
     }
     const sceneId = resolveSceneIdByName(config.sceneName);
 
