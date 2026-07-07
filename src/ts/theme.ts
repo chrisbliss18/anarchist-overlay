@@ -3,6 +3,8 @@ export type PresentationThemeType =
   | 'terminal'
   | 'scanline'
   | 'alert'
+  | 'hologram'
+  | 'classified'
   | 'clean';
 
 export type PresentationThemeConfig = {
@@ -21,10 +23,12 @@ export const resolvePresentationThemeType = (
     || resolvedThemeType === 'terminal'
     || resolvedThemeType === 'scanline'
     || resolvedThemeType === 'alert'
+    || resolvedThemeType === 'hologram'
+    || resolvedThemeType === 'classified'
     || resolvedThemeType === 'clean'
   ) {
     return resolvedThemeType;
   }
 
-  throw new Error(`Unknown presentation theme type "${resolvedThemeType}". Expected "industrial", "terminal", "scanline", "alert", or "clean".`);
+  throw new Error(`Unknown presentation theme type "${resolvedThemeType}". Expected "industrial", "terminal", "scanline", "alert", "hologram", "classified", or "clean".`);
 };

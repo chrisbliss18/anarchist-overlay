@@ -167,8 +167,12 @@ export const validateTextCrawlConfig = (config: TextCrawlConfig) => {
   resolveTextCrawlThemeType(config.theme?.type, frameType);
   resolveTextCrawlAlignment(config.alignX, 'alignX');
   resolveTextCrawlAlignment(config.textAlign, 'textAlign');
+  validateTextCrawlLayoutConfig(config);
+  validateTextCrawlTimingConfig(config);
   validateTextCrawlEffectConfig(config.effect);
+  validateTextCrawlGlitchConfig(config);
   validateTextCrawlEffectFrameCompatibility(frameType, effectType);
+  validateTextCrawlLines(config);
 };
 
 const resolveTextCrawlAlignment = (
@@ -206,6 +210,11 @@ export const isTextCrawlTypewriterEffect = (config: TextCrawlConfig) => {
   return resolveTextCrawlEffectType(config.effect?.type, frameType) === 'typewriter';
 };
 
+export const getTextCrawlThemeType = (config: TextCrawlConfig) => {
+  const frameType = resolveTextCrawlFrameType(config.frame?.type);
+  return resolveTextCrawlThemeType(config.theme?.type, frameType);
+};
+
 export const getTextCrawlDisplayDurationMs = (text?: TextCrawlConfig) => {
   if (!text?.lines.length) {
     return 1500;
@@ -214,8 +223,12 @@ export const getTextCrawlDisplayDurationMs = (text?: TextCrawlConfig) => {
   const frameType = resolveTextCrawlFrameType(text.frame?.type);
   const effectType = resolveTextCrawlEffectType(text.effect?.type, frameType);
   resolveTextCrawlThemeType(text.theme?.type, frameType);
+  validateTextCrawlLayoutConfig(text);
+  validateTextCrawlTimingConfig(text);
   validateTextCrawlEffectConfig(text.effect);
+  validateTextCrawlGlitchConfig(text);
   validateTextCrawlEffectFrameCompatibility(frameType, effectType);
+  validateTextCrawlLines(text);
 
   if (effectType === 'scroll') {
     return ((text.effect?.duration ?? defaultScrollDurationSeconds) + 1) * 1000;
@@ -243,8 +256,12 @@ const normalizeConfig = (config: TextCrawlConfig): NormalizedConfig => {
   const themeType = resolveTextCrawlThemeType(config.theme?.type, frameType);
   const alignX = resolveTextCrawlAlignment(config.alignX, 'alignX');
   const textAlign = resolveTextCrawlAlignment(config.textAlign, 'textAlign');
+  validateTextCrawlLayoutConfig(config);
+  validateTextCrawlTimingConfig(config);
   validateTextCrawlEffectConfig(config.effect);
+  validateTextCrawlGlitchConfig(config);
   validateTextCrawlEffectFrameCompatibility(frameType, effectType);
+  validateTextCrawlLines(config);
   const effect = {
     type: effectType,
     duration: config.effect?.duration ?? getDefaultEffectDurationSeconds(effectType),
@@ -290,12 +307,73 @@ const validateTextCrawlEffectConfig = (effect?: TextCrawlEffectConfig) => {
     return;
   }
 
+  if (effect.loop !== undefined && typeof effect.loop !== 'boolean') {
+    throw new Error('Text crawl effect loop must be true or false.');
+  }
+
+  if (effect.separator !== undefined && typeof effect.separator !== 'string') {
+    throw new Error('Text crawl effect separator must be a string.');
+  }
+
   if (effect.duration !== undefined && (!Number.isFinite(effect.duration) || effect.duration <= 0)) {
     throw new Error('Text crawl effect duration must be a positive number of seconds.');
   }
 
   if (effect.lineDelay !== undefined && (!Number.isFinite(effect.lineDelay) || effect.lineDelay < 0)) {
     throw new Error('Text crawl effect lineDelay must be a non-negative number of seconds.');
+  }
+};
+
+const validateTextCrawlLayoutConfig = (config: TextCrawlConfig) => {
+  validateOptionalTextCssString(config.offsetX, 'offsetX');
+  validateOptionalTextCssString(config.offsetY, 'offsetY');
+  validateOptionalTextCssString(config.maxWidth, 'maxWidth');
+};
+
+const validateTextCrawlTimingConfig = (config: TextCrawlConfig) => {
+  if (config.typingTime !== undefined && (!Number.isFinite(config.typingTime) || config.typingTime <= 0)) {
+    throw new Error('Text crawl typingTime must be a positive number of seconds.');
+  }
+
+  if (config.delay !== undefined && (!Number.isFinite(config.delay) || config.delay < 0)) {
+    throw new Error('Text crawl delay must be a non-negative number of seconds.');
+  }
+};
+
+const validateTextCrawlGlitchConfig = (config: TextCrawlConfig) => {
+  if (config.glitchEffect === undefined || config.glitchEffect === false) {
+    return;
+  }
+
+  if (
+    !config.glitchEffect
+    || typeof config.glitchEffect !== 'object'
+    || !Number.isFinite(config.glitchEffect.time)
+    || config.glitchEffect.time <= 0
+  ) {
+    throw new Error('Text crawl glitchEffect must be false or an object with a positive time value in seconds.');
+  }
+};
+
+const validateTextCrawlLines = (config: TextCrawlConfig) => {
+  if (!Array.isArray(config.lines) || config.lines.length === 0) {
+    throw new Error('Text crawl lines must contain at least one line.');
+  }
+
+  config.lines.forEach((line, index) => {
+    if (!line || typeof line.text !== 'string' || !line.text.trim()) {
+      throw new Error(`Text crawl line ${index + 1} must include non-empty text.`);
+    }
+
+    if (line.fontSize !== undefined && (typeof line.fontSize !== 'string' || !line.fontSize.trim())) {
+      throw new Error(`Text crawl line ${index + 1} fontSize must be a non-empty CSS size string.`);
+    }
+  });
+};
+
+const validateOptionalTextCssString = (value: string | undefined, fieldName: string) => {
+  if (value !== undefined && (typeof value !== 'string' || !value.trim())) {
+    throw new Error(`Text crawl ${fieldName} must be a non-empty CSS value string.`);
   }
 };
 

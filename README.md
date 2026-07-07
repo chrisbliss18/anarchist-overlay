@@ -63,7 +63,7 @@ await anarchistOverlay.createOverlay(overlayConfig, textHtml);
 
 Text crawl frames can be set to `cinematic-bars`, `horizontal-bar`, `lower-third`, `panel`, `mission-card`, `chyron`, or `none`.
 
-Themes can be set to `industrial`, `terminal`, `scanline`, `alert`, or `clean`. Frames describe layout; themes describe the visual treatment. The default text theme depends on the frame: `panel` and `chyron` default to `terminal`, `none` and `cinematic-bars` default to `clean`, and the other frames default to `industrial`.
+Themes can be set to `industrial`, `terminal`, `scanline`, `alert`, `hologram`, `classified`, or `clean`. Frames describe layout; themes describe the visual treatment. The default text theme depends on the frame: `panel` and `chyron` default to `terminal`, `none` and `cinematic-bars` default to `clean`, and the other frames default to `industrial`.
 
 Text crawl effects can be set to `typewriter`, `scroll`, `stagger-fade`, `decode`, `wipe`, or `none`. Frames default to `typewriter`, except `chyron`, which defaults to `scroll`. The `scroll` effect is supported by `chyron` and `horizontal-bar`.
 
@@ -163,6 +163,8 @@ frame: { type: 'panel' }, theme: { type: 'terminal' }
 frame: { type: 'panel' }, theme: { type: 'scanline' }
 frame: { type: 'horizontal-bar' }, theme: { type: 'alert' }
 frame: { type: 'mission-card' }, theme: { type: 'scanline' }
+frame: { type: 'lower-third' }, theme: { type: 'hologram' }
+frame: { type: 'mission-card' }, theme: { type: 'classified' }
 ```
 
 ### Additional Effects
@@ -468,11 +470,105 @@ await anarchistOverlay.playSceneTransition({
 });
 ```
 
-The industrial door animation and bundled transition sounds are used by default. Pass `theme`, `transition`, `timing`, or `sounds` only when you want to override the defaults. A top-level `theme` is inherited by transition text unless `text.theme` overrides it; `transition.theme` can separately theme the transition shell.
+The industrial door animation is used by default. Pass `theme`, `transition`, `timing`, or `sounds` only when you want to override the defaults. A top-level `theme` is inherited by transition text unless `text.theme` overrides it; `transition.theme` can separately theme the transition shell.
 
-Bundled sound defaults live under `modules/anarchist-overlay/sounds/`: `industrial-door-close.ogg`, `industrial-door-seal.ogg`, `industrial-door-unlock.ogg`, `industrial-door-open.ogg`, and `mechanical-typing-click.ogg`.
+Scene transitions use theme-aware bundled sound defaults. Door sounds come from `transition.theme`; typing clicks come from `text.theme`. The `clean` theme is silent. Pass `sounds` to override any individual sound or volume.
 
 The `sceneName` value must match exactly one scene. If no scene matches, or if multiple scenes share the same name, the GM receives an error notification and the transition is not started.
+
+### Macro Helper Patterns
+
+These are plain macro helpers layered over the module API. They are useful if you want consistent formatting without repeating the same config in every scene macro.
+
+```js
+const ao = game.modules.get('anarchist-overlay').api;
+
+const missionLines = entries => entries.map(([text, fontSize]) => ({ text, fontSize }));
+
+const briefingText = ({
+  frame = 'mission-card',
+  theme = 'industrial',
+  effect = 'typewriter',
+  alignX = 'center',
+  textAlign = 'start',
+  maxWidth = '820px',
+  lines
+}) => ({
+  alignX,
+  textAlign,
+  maxWidth,
+  typingTime: 1.6,
+  delay: 0.35,
+  frame: { type: frame },
+  theme: { type: theme },
+  effect: { type: effect },
+  lines
+});
+```
+
+Use that helper for a standalone overlay:
+
+```js
+const textHtml = await ao.createTextCrawlHtml(briefingText({
+  frame: 'horizontal-bar',
+  theme: 'hologram',
+  textAlign: 'center',
+  lines: missionLines([
+    ['DROP ZONE TELEMETRY ACQUIRED', '34px'],
+    ['HOSTILE SIGNATURES DETECTED', '24px']
+  ])
+}));
+
+await ao.createOverlay({
+  id: 'telemetry-update',
+  positionX: 'center',
+  positionY: 'center',
+  closeTime: 8,
+  clearExisting: true
+}, textHtml);
+```
+
+Or wrap the full scene transition:
+
+```js
+async function playMissionTransition(sceneName, entries, options = {}) {
+  return ao.playSceneTransition({
+    sceneName,
+    theme: {
+      type: options.theme ?? 'industrial'
+    },
+    transition: {
+      type: options.transition ?? 'industrial-doors',
+      theme: {
+        type: options.transitionTheme ?? options.theme ?? 'industrial'
+      }
+    },
+    text: briefingText({
+      frame: options.frame ?? 'mission-card',
+      theme: options.textTheme ?? options.theme ?? 'industrial',
+      effect: options.effect ?? 'typewriter',
+      lines: missionLines(entries)
+    }),
+    timing: {
+      doorCloseMs: 2200,
+      doorUnlockMs: 700,
+      doorOpenMs: 2400,
+      textFadeMs: 900
+    }
+  });
+}
+
+await playMissionTransition('Sandbox', [
+  ['MISSION 1: BUG HUNT', '52px'],
+  ['COMBAT: TRAPDOOR SPIDER', '38px'],
+  ['OBJECTIVE: SEARCH AND DESTROY', '34px'],
+  ['EARLY SPRING, 5014U | HERCYNIA', '20px']
+], {
+  transitionTheme: 'classified',
+  textTheme: 'hologram',
+  effect: 'decode'
+});
+```
 
 ## Config
 ```js
@@ -502,6 +598,8 @@ export type PresentationThemeType =
   | 'terminal'
   | 'scanline'
   | 'alert'
+  | 'hologram'
+  | 'classified'
   | 'clean';
 export type TextCrawlEffectType =
   | 'typewriter'
@@ -564,13 +662,13 @@ export type SceneTransitionConfig = {
     sceneReadyTimeoutMs?: number; // max wait for the target scene canvas to be ready. Default: 10000
   };
   sounds?: {
-    doorClose?: string; // local sound path for door close. Defaults to the bundled sound.
-    doorSeal?: string; // local sound path for doors sealing shut. Defaults to the bundled sound.
-    doorUnlock?: string; // local sound path before doors open. Defaults to the bundled sound.
-    doorOpen?: string; // local sound path for door open. Defaults to the bundled sound.
-    typingClick?: string; // local click sound path scheduled with typed characters for typewriter text. Defaults to the bundled sound.
-    doorVolume?: number; // default: 0.8
-    typingVolume?: number; // default: 0.35
+    doorClose?: string; // local sound path for door close. Defaults from transition.theme.
+    doorSeal?: string; // local sound path for doors sealing shut. Defaults from transition.theme.
+    doorUnlock?: string; // local sound path before doors open. Defaults from transition.theme.
+    doorOpen?: string; // local sound path for door open. Defaults from transition.theme.
+    typingClick?: string; // local click sound path scheduled with typed characters for typewriter text. Defaults from text.theme.
+    doorVolume?: number; // defaults from transition.theme
+    typingVolume?: number; // defaults from text.theme
   };
   aboveUi?: boolean; // defaults to true
   blockInteractions?: boolean; // defaults to true

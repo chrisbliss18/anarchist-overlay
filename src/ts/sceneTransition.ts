@@ -10,7 +10,12 @@ import type {
   TransitionAudioController,
   TransitionController
 } from './sceneTransitionTypes';
-import { createTextCrawlHtml, getTextCrawlDisplayDurationMs, validateTextCrawlConfig } from './textCrawl';
+import {
+  createTextCrawlHtml,
+  getTextCrawlDisplayDurationMs,
+  getTextCrawlThemeType,
+  validateTextCrawlConfig
+} from './textCrawl';
 import { moduleId } from './constants';
 import { resolvePresentationThemeType, type PresentationThemeType } from './theme';
 import { createTransitionAudioController } from './sceneTransitionAudio';
@@ -61,15 +66,68 @@ const defaultSounds: Required<SceneTransitionSounds> = {
   typingVolume: 0.35
 };
 
+const themeSoundDefaults: Record<PresentationThemeType, Required<SceneTransitionSounds>> = {
+  industrial: defaultSounds,
+  terminal: {
+    doorClose: `modules/${moduleId}/sounds/terminal-transition-close.ogg`,
+    doorSeal: `modules/${moduleId}/sounds/terminal-transition-seal.ogg`,
+    doorUnlock: `modules/${moduleId}/sounds/terminal-transition-unlock.ogg`,
+    doorOpen: `modules/${moduleId}/sounds/terminal-transition-open.ogg`,
+    typingClick: `modules/${moduleId}/sounds/terminal-typing-click.ogg`,
+    doorVolume: 0.52,
+    typingVolume: 0.28
+  },
+  scanline: {
+    doorClose: `modules/${moduleId}/sounds/scanline-transition-close.ogg`,
+    doorSeal: `modules/${moduleId}/sounds/scanline-transition-seal.ogg`,
+    doorUnlock: `modules/${moduleId}/sounds/scanline-transition-unlock.ogg`,
+    doorOpen: `modules/${moduleId}/sounds/scanline-transition-open.ogg`,
+    typingClick: `modules/${moduleId}/sounds/scanline-typing-click.ogg`,
+    doorVolume: 0.48,
+    typingVolume: 0.24
+  },
+  alert: {
+    doorClose: `modules/${moduleId}/sounds/alert-transition-close.ogg`,
+    doorSeal: `modules/${moduleId}/sounds/alert-transition-seal.ogg`,
+    doorUnlock: `modules/${moduleId}/sounds/alert-transition-unlock.ogg`,
+    doorOpen: `modules/${moduleId}/sounds/alert-transition-open.ogg`,
+    typingClick: `modules/${moduleId}/sounds/alert-typing-click.ogg`,
+    doorVolume: 0.64,
+    typingVolume: 0.3
+  },
+  hologram: {
+    doorClose: `modules/${moduleId}/sounds/hologram-transition-close.ogg`,
+    doorSeal: `modules/${moduleId}/sounds/hologram-transition-seal.ogg`,
+    doorUnlock: `modules/${moduleId}/sounds/hologram-transition-unlock.ogg`,
+    doorOpen: `modules/${moduleId}/sounds/hologram-transition-open.ogg`,
+    typingClick: `modules/${moduleId}/sounds/hologram-typing-click.ogg`,
+    doorVolume: 0.46,
+    typingVolume: 0.22
+  },
+  classified: {
+    doorClose: `modules/${moduleId}/sounds/classified-transition-close.ogg`,
+    doorSeal: `modules/${moduleId}/sounds/classified-transition-seal.ogg`,
+    doorUnlock: `modules/${moduleId}/sounds/classified-transition-unlock.ogg`,
+    doorOpen: `modules/${moduleId}/sounds/classified-transition-open.ogg`,
+    typingClick: `modules/${moduleId}/sounds/classified-typing-click.ogg`,
+    doorVolume: 0.44,
+    typingVolume: 0.2
+  },
+  clean: {
+    doorClose: '',
+    doorSeal: '',
+    doorUnlock: '',
+    doorOpen: '',
+    typingClick: '',
+    doorVolume: 0,
+    typingVolume: 0
+  }
+};
+
 export const playSceneTransition = (socket: ModuleSocket) => async (config: SceneTransitionConfig) => {
   try {
     assertGM('play scene transitions');
-    resolveSceneTransitionType(config.transition?.type);
-    const themeType = resolvePresentationThemeType(config.theme?.type);
-    resolvePresentationThemeType(config.transition?.theme?.type, themeType);
-    if (config.text) {
-      validateTextCrawlConfig(applyInheritedTextTheme(config.text, config.theme?.type ? themeType : undefined));
-    }
+    validateSceneTransitionConfig(config);
     const sceneId = resolveSceneIdByName(config.sceneName);
 
     return await socket.executeForEveryone(
@@ -88,6 +146,7 @@ export const setupSceneTransitionSocket = (socket: ModuleSocket) => {
 };
 
 const handleSceneTransition = async (config: SceneTransitionSocketConfig, controllingUserId: string) => {
+  validateSceneTransitionConfig(config);
   const normalizedConfig = normalizeConfig(config);
   const overlay = createTransitionOverlay(normalizedConfig);
   const controller = createTransitionController();
@@ -462,11 +521,13 @@ const normalizeConfig = (config: SceneTransitionSocketConfig): NormalizedSceneTr
   const text = config.text
     ? applyInheritedTextTheme(config.text, config.theme?.type ? themeType : undefined)
     : undefined;
+  const textThemeType = text ? getTextCrawlThemeType(text) : themeType;
   const timing = {
     ...defaultTiming,
     ...config.timing,
     briefingMs: config.timing?.briefingMs ?? getTextCrawlDisplayDurationMs(text)
   };
+  const sounds = resolveSceneTransitionSounds(config.sounds, transitionThemeType, textThemeType);
 
   return {
     sceneId: config.sceneId,
@@ -483,12 +544,89 @@ const normalizeConfig = (config: SceneTransitionSocketConfig): NormalizedSceneTr
     },
     text,
     timing,
-    sounds: {
-      ...defaultSounds,
-      ...config.sounds
-    },
+    sounds,
     aboveUi: config.aboveUi ?? true,
     blockInteractions: config.blockInteractions ?? true
+  };
+};
+
+const validateSceneTransitionConfig = (config: SceneTransitionConfig) => {
+  resolveSceneTransitionType(config.transition?.type);
+  const themeType = resolvePresentationThemeType(config.theme?.type);
+  resolvePresentationThemeType(config.transition?.theme?.type, themeType);
+  validateSceneTransitionTiming(config.timing);
+  validateSceneTransitionSounds(config.sounds);
+
+  if (config.text) {
+    validateTextCrawlConfig(applyInheritedTextTheme(config.text, config.theme?.type ? themeType : undefined));
+  }
+};
+
+const validateSceneTransitionTiming = (timing?: SceneTransitionTiming) => {
+  if (!timing) {
+    return;
+  }
+
+  const fields: Array<keyof SceneTransitionTiming> = [
+    'doorCloseMs',
+    'briefingMs',
+    'doorUnlockMs',
+    'doorOpenMs',
+    'fadeOutMs',
+    'fadeInMs',
+    'textFadeMs',
+    'sceneReadyTimeoutMs'
+  ];
+
+  fields.forEach(field => {
+    const value = timing[field];
+    if (value !== undefined && (!Number.isFinite(value) || value < 0)) {
+      throw new Error(`Scene transition timing.${field} must be a non-negative number of milliseconds.`);
+    }
+  });
+};
+
+const validateSceneTransitionSounds = (sounds?: SceneTransitionSounds) => {
+  if (!sounds) {
+    return;
+  }
+
+  const soundPathFields: Array<keyof Pick<
+    SceneTransitionSounds,
+    'doorClose' | 'doorSeal' | 'doorUnlock' | 'doorOpen' | 'typingClick'
+  >> = ['doorClose', 'doorSeal', 'doorUnlock', 'doorOpen', 'typingClick'];
+  soundPathFields.forEach(field => {
+    const value = sounds[field];
+    if (value !== undefined && typeof value !== 'string') {
+      throw new Error(`Scene transition sounds.${field} must be a string path or an empty string.`);
+    }
+  });
+
+  const volumeFields: Array<keyof Pick<SceneTransitionSounds, 'doorVolume' | 'typingVolume'>> = [
+    'doorVolume',
+    'typingVolume'
+  ];
+  volumeFields.forEach(field => {
+    const value = sounds[field];
+    if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 1)) {
+      throw new Error(`Scene transition sounds.${field} must be a number from 0 to 1.`);
+    }
+  });
+};
+
+const resolveSceneTransitionSounds = (
+  sounds: SceneTransitionSounds | undefined,
+  transitionThemeType: PresentationThemeType,
+  textThemeType: PresentationThemeType
+) => {
+  const transitionSoundDefaults = themeSoundDefaults[transitionThemeType];
+  const textSoundDefaults = themeSoundDefaults[textThemeType];
+
+  return {
+    ...transitionSoundDefaults,
+    typingClick: textSoundDefaults.typingClick,
+    typingVolume: textSoundDefaults.typingVolume,
+    ...sounds
   };
 };
 
