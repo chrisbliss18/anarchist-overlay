@@ -139,16 +139,6 @@ export const resolveTextCrawlFrameType = (frameType?: string): TextCrawlFrameTyp
     return resolvedFrameType;
   }
 
-  if (
-    resolvedFrameType === 'terminal-panel'
-    || resolvedFrameType === 'scanline-panel'
-  ) {
-    return 'panel';
-  }
-  if (resolvedFrameType === 'alert-banner') {
-    return 'horizontal-bar';
-  }
-
   throw new Error(`Unknown text crawl frame type "${resolvedFrameType}". Expected "none", "cinematic-bars", "horizontal-bar", "lower-third", "chyron", "panel", or "mission-card".`);
 };
 
@@ -174,7 +164,7 @@ export const resolveTextCrawlEffectType = (
 export const validateTextCrawlConfig = (config: TextCrawlConfig) => {
   const frameType = resolveTextCrawlFrameType(config.frame?.type);
   const effectType = resolveTextCrawlEffectType(config.effect?.type, frameType);
-  resolveTextCrawlThemeType(config.theme?.type, config.frame?.type, frameType);
+  resolveTextCrawlThemeType(config.theme?.type, frameType);
   resolveTextCrawlAlignment(config.alignX, 'alignX');
   resolveTextCrawlAlignment(config.textAlign, 'textAlign');
   validateTextCrawlEffectConfig(config.effect);
@@ -203,12 +193,11 @@ const getCssAlignment = (alignment: TextCrawlAlignment) => {
 
 const resolveTextCrawlThemeType = (
   themeType: string | undefined,
-  rawFrameType: string | undefined,
   frameType: TextCrawlFrameType
 ): PresentationThemeType => {
   return resolvePresentationThemeType(
     themeType,
-    getDefaultTextCrawlThemeType(rawFrameType, frameType)
+    getDefaultTextCrawlThemeType(frameType)
   );
 };
 
@@ -224,7 +213,7 @@ export const getTextCrawlDisplayDurationMs = (text?: TextCrawlConfig) => {
 
   const frameType = resolveTextCrawlFrameType(text.frame?.type);
   const effectType = resolveTextCrawlEffectType(text.effect?.type, frameType);
-  resolveTextCrawlThemeType(text.theme?.type, text.frame?.type, frameType);
+  resolveTextCrawlThemeType(text.theme?.type, frameType);
   validateTextCrawlEffectConfig(text.effect);
   validateTextCrawlEffectFrameCompatibility(frameType, effectType);
 
@@ -251,7 +240,7 @@ export const getTextCrawlDisplayDurationMs = (text?: TextCrawlConfig) => {
 const normalizeConfig = (config: TextCrawlConfig): NormalizedConfig => {
   const frameType = resolveTextCrawlFrameType(config.frame?.type);
   const effectType = resolveTextCrawlEffectType(config.effect?.type, frameType);
-  const themeType = resolveTextCrawlThemeType(config.theme?.type, config.frame?.type, frameType);
+  const themeType = resolveTextCrawlThemeType(config.theme?.type, frameType);
   const alignX = resolveTextCrawlAlignment(config.alignX, 'alignX');
   const textAlign = resolveTextCrawlAlignment(config.textAlign, 'textAlign');
   validateTextCrawlEffectConfig(config.effect);
@@ -325,19 +314,7 @@ const isScrollCompatibleFrameType = (frameType: TextCrawlFrameType) => {
   return frameType === 'chyron' || frameType === 'horizontal-bar';
 };
 
-const getDefaultTextCrawlThemeType = (
-  rawFrameType: string | undefined,
-  frameType: TextCrawlFrameType
-): PresentationThemeType => {
-  if (rawFrameType === 'terminal-panel') {
-    return 'terminal';
-  }
-  if (rawFrameType === 'scanline-panel') {
-    return 'scanline';
-  }
-  if (rawFrameType === 'alert-banner') {
-    return 'alert';
-  }
+const getDefaultTextCrawlThemeType = (frameType: TextCrawlFrameType): PresentationThemeType => {
   if (frameType === 'panel' || frameType === 'chyron') {
     return 'terminal';
   }
