@@ -61,9 +61,9 @@ const textHtml = await anarchistOverlay.createTextCrawlHtml(textConfig);
 await anarchistOverlay.createOverlay(overlayConfig, textHtml);
 ```
 
-Text crawl frames can be set to `cinematic-bars`, `lancer-bar`, or `none`.
+Text crawl frames can be set to `cinematic-bars`, `horizontal-bar`, or `none`.
 
-### Lancer-Style Bar
+### Horizontal Bar
 
 ```js
 const anarchistOverlay = game.modules.get('anarchist-overlay').api;
@@ -72,7 +72,7 @@ const textHtml = await anarchistOverlay.createTextCrawlHtml({
   typingTime: 1.2,
   delay: 0.3,
   frame: {
-    type: 'lancer-bar'
+    type: 'horizontal-bar'
   },
   lines: [
     {
@@ -257,7 +257,7 @@ await anarchistOverlay.playSceneTransition({
     typingTime: 1.5,
     delay: 0.5,
     frame: {
-      type: 'lancer-bar'
+      type: 'horizontal-bar'
     },
     lines: [
       {
@@ -299,7 +299,7 @@ export type OverlayConfig = {
   blockInteractions?: boolean; // should it block interactions with canvas and/or UI (defaults to true)
 }
 //Text config
-export type TextCrawlFrameType = 'none' | 'cinematic-bars' | 'lancer-bar';
+export type TextCrawlFrameType = 'none' | 'cinematic-bars' | 'horizontal-bar';
 
 export type TextCrawlConfig = {
   offsetX?: string; // for example '15px'

@@ -1,10 +1,13 @@
-<div class="text-crawl {{frameTypeClass}}">
+<div
+  class="text-crawl {{frameTypeClass}}"
+  style="--text-crawl-offset-x: {{offsetX}}; --text-crawl-offset-y: {{offsetY}};"
+>
   {{#if showCinematicBars}}
     <div class="text-crawl__cinematic-bar text-crawl__cinematic-bar--top"></div>
     <div class="text-crawl__cinematic-bar text-crawl__cinematic-bar--bottom"></div>
   {{/if}}
 
-  <div class="text-crawl__content" style="margin-left: {{offsetX}}; margin-top: {{offsetY}}">
+  <div class="text-crawl__content">
     {{#each lines}}
       <div
         style="

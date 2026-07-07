@@ -23,6 +23,8 @@
 .text-crawl__content {
   position: relative;
   z-index: 1;
+  margin-left: var(--text-crawl-offset-x);
+  margin-top: var(--text-crawl-offset-y);
 }
 
 .text-crawl__cinematic-bar {
@@ -42,7 +44,7 @@
   }
 }
 
-.text-crawl--lancer-bar {
+.text-crawl--horizontal-bar {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,8 +52,12 @@
   height: 100%;
 
   .text-crawl__content {
-    width: min(92vw, 1160px);
-    padding: 18px clamp(20px, 3vw, 42px);
+    --horizontal-bar-padding-x: clamp(20px, 3vw, 42px);
+    box-sizing: border-box;
+    width: 100vw;
+    margin-left: 0;
+    padding: 18px var(--horizontal-bar-padding-x);
+    padding-left: calc(var(--horizontal-bar-padding-x) + var(--text-crawl-offset-x));
     border-top: 2px solid rgba(255, 216, 87, 0.95);
     border-bottom: 2px solid rgba(255, 216, 87, 0.95);
     background:
@@ -62,6 +68,11 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       inset 0 -1px 0 rgba(0, 0, 0, 0.65);
   }
+}
+
+.anarchist-scene-transition__text .text-crawl--horizontal-bar {
+  margin-left: -8vw;
+  width: 100vw;
 }
 
 .text-crawl--cinematic-bars {

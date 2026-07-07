@@ -1,6 +1,6 @@
 import {moduleId} from "./constants";
 
-export type TextCrawlFrameType = 'none' | 'cinematic-bars' | 'lancer-bar';
+export type TextCrawlFrameType = 'none' | 'cinematic-bars' | 'horizontal-bar';
 
 export type TextCrawlFrameConfig = {
   type?: TextCrawlFrameType;
@@ -51,11 +51,11 @@ export const createTextCrawlHtml = async (config: TextCrawlConfig) => {
 
 export const resolveTextCrawlFrameType = (frameType?: string): TextCrawlFrameType => {
   const resolvedFrameType = frameType ?? 'cinematic-bars';
-  if (resolvedFrameType === 'none' || resolvedFrameType === 'cinematic-bars' || resolvedFrameType === 'lancer-bar') {
+  if (resolvedFrameType === 'none' || resolvedFrameType === 'cinematic-bars' || resolvedFrameType === 'horizontal-bar') {
     return resolvedFrameType;
   }
 
-  throw new Error(`Unknown text crawl frame type "${resolvedFrameType}". Expected "none", "cinematic-bars", or "lancer-bar".`);
+  throw new Error(`Unknown text crawl frame type "${resolvedFrameType}". Expected "none", "cinematic-bars", or "horizontal-bar".`);
 };
 
 const normalizeConfig = (config: TextCrawlConfig): NormalizedConfig => {
