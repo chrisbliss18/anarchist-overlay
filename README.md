@@ -179,7 +179,7 @@ Plays a prototype scene transition on every connected client. This must be calle
 const anarchistOverlay = game.modules.get('anarchist-overlay').api;
 
 await anarchistOverlay.playSceneTransition({
-  sceneId: 'TARGET_SCENE_ID',
+  sceneName: 'TARGET SCENE NAME',
   text: {
     offsetX: '20px',
     offsetY: '0',
@@ -239,7 +239,7 @@ export type TextCrawlConfig = {
 
 // Scene transition config
 export type SceneTransitionConfig = {
-  sceneId: string; // target scene id
+  sceneName: string; // target scene name. Must match exactly and be unique.
   id?: string; // optional transition id, defaults to 'scene-transition'
   text?: TextCrawlConfig; // optional text crawl config rendered while doors are closed
   timing?: {

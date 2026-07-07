@@ -4,6 +4,7 @@ import type {
   NormalizedSceneTransitionConfig,
   SceneTransitionConfig,
   SceneTransitionSounds,
+  SceneTransitionSocketConfig,
   SceneTransitionTiming,
   TransitionAudio,
   TransitionController
@@ -29,6 +30,11 @@ export type {
 
 const activeTransitions = new Map<string, TransitionController>();
 
+type SceneNameLookupDocument = {
+  id: string | null;
+  name: string;
+};
+
 const defaultTiming: Required<SceneTransitionTiming> = {
   doorCloseMs: 2200,
   briefingMs: 0,
@@ -50,21 +56,20 @@ const defaultSounds: Required<SceneTransitionSounds> = {
 
 export const playSceneTransition = (socket: ModuleSocket) => (config: SceneTransitionConfig) => {
   assertGM('play scene transitions');
-  if (!config.sceneId) {
-    throw new Error('Scene id is required.');
-  }
-  if (!(game as ReadyGame).scenes?.has(config.sceneId)) {
-    throw new Error(`Unable to find scene with id "${config.sceneId}".`);
-  }
+  const sceneId = resolveSceneIdByName(config.sceneName);
 
-  return socket.executeForEveryone('playSceneTransition', config, (game as ReadyGame).user.id);
+  return socket.executeForEveryone(
+    'playSceneTransition',
+    { ...config, sceneId },
+    (game as ReadyGame).user.id
+  );
 };
 
 export const setupSceneTransitionSocket = (socket: ModuleSocket) => {
   socket.register('playSceneTransition', handleSceneTransition);
 };
 
-const handleSceneTransition = async (config: SceneTransitionConfig, controllingUserId: string) => {
+const handleSceneTransition = async (config: SceneTransitionSocketConfig, controllingUserId: string) => {
   const normalizedConfig = normalizeConfig(config);
   const overlay = createTransitionOverlay(normalizedConfig);
   const controller = createTransitionController();
@@ -245,7 +250,7 @@ const waitForSceneReady = (sceneId: string, timeoutMs: number) => {
   });
 };
 
-const normalizeConfig = (config: SceneTransitionConfig): NormalizedSceneTransitionConfig => {
+const normalizeConfig = (config: SceneTransitionSocketConfig): NormalizedSceneTransitionConfig => {
   const timing = {
     ...defaultTiming,
     ...config.timing,
@@ -254,6 +259,7 @@ const normalizeConfig = (config: SceneTransitionConfig): NormalizedSceneTransiti
 
   return {
     sceneId: config.sceneId,
+    sceneName: config.sceneName,
     id: config.id ?? 'scene-transition',
     text: config.text,
     timing,
@@ -264,6 +270,33 @@ const normalizeConfig = (config: SceneTransitionConfig): NormalizedSceneTransiti
     aboveUi: config.aboveUi ?? true,
     blockInteractions: config.blockInteractions ?? true
   };
+};
+
+const resolveSceneIdByName = (name: string) => {
+  const sceneName = name?.trim();
+  if (!sceneName) {
+    throw new Error('Scene name is required.');
+  }
+
+  const scenes = (game as ReadyGame).scenes;
+  if (!scenes) {
+    throw new Error('Unable to resolve scene name: scene collection is not available.');
+  }
+
+  const matches = (scenes.contents as SceneNameLookupDocument[]).filter(scene => scene.name === sceneName);
+  if (matches.length === 0) {
+    throw new Error(`Unable to find scene named "${sceneName}".`);
+  }
+  if (matches.length > 1) {
+    throw new Error(`Scene name "${sceneName}" is ambiguous. Rename duplicate scenes or use a unique scene name.`);
+  }
+
+  const sceneId = matches[0].id;
+  if (!sceneId) {
+    throw new Error(`Unable to resolve an id for scene "${sceneName}".`);
+  }
+
+  return sceneId;
 };
 
 const calculateTextDuration = (text?: TextCrawlConfig) => {

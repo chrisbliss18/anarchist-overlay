@@ -1,13 +1,18 @@
 import type { TextCrawlConfig } from './textCrawl';
 
 export type SceneTransitionConfig = {
-  sceneId: string;
+  sceneName: string;
   id?: string;
   text?: TextCrawlConfig;
   timing?: SceneTransitionTiming;
   sounds?: SceneTransitionSounds;
   aboveUi?: boolean;
   blockInteractions?: boolean;
+};
+
+export type SceneTransitionSocketConfig = Omit<SceneTransitionConfig, 'sceneName'> & {
+  sceneId: string;
+  sceneName: string;
 };
 
 export type SceneTransitionTiming = {
@@ -30,7 +35,7 @@ export type SceneTransitionSounds = {
 };
 
 export type NormalizedSceneTransitionConfig = Required<
-  Omit<SceneTransitionConfig, 'text' | 'timing' | 'sounds'>
+  Omit<SceneTransitionSocketConfig, 'text' | 'timing' | 'sounds'>
 > & {
   text?: TextCrawlConfig;
   timing: Required<SceneTransitionTiming>;
